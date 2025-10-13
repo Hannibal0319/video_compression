@@ -15,9 +15,11 @@ for e in compressed_videos:
     print("Results for", compressed_video)
 
     print("SSIM")
-    print(sum([frame["psnr_y"] for frame in metrics["psnr"]]) / len(metrics["psnr"]))    
+    print(sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"]))    
     print("PSNR")
-    print(sum([frame["ssim_y"] for frame in metrics["ssim"]]) / len(metrics["ssim"]))
+    print(sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"]))
     print("VMAF")
     print(sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"]))
     print()
+    print("VIF")
+    print(sum([frame["scale_0"] for frame in metrics["vif"]]) / len(metrics["vif"]))
