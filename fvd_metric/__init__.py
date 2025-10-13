@@ -1,1 +1,1 @@
-from .fvd import compute_fvd
+from .fvd import compute_fvd, compute_fvd_from_paths

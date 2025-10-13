@@ -21,6 +21,7 @@ import re
 import html
 import io
 import uuid
+import torchvision.io as io
 
 _feature_detector_cache = dict()
 
@@ -148,3 +149,19 @@ def compute_fvd(y_true: torch.Tensor, y_pred: torch.Tensor, max_items: int, devi
     s, _ = scipy.linalg.sqrtm(np.dot(sigma_pred, sigma_true), disp=False)
     fvd = np.real(m + np.trace(sigma_pred + sigma_true - s * 2))
     return float(fvd)
+
+def compute_fvd_from_paths(path_true: str, path_pred: str, max_items: int, device: torch.device, batch_size: int):
+
+    # load videos from specified paths
+    v_true, _, _ = io.read_video(path_true, pts_unit='sec')
+    v_pred, _, _ = io.read_video(path_pred, pts_unit='sec')
+
+    # convert to channel first format and normalize to [0,1]
+    v_true = v_true.permute(0, 3, 1, 2).float() / 255.0
+    v_pred = v_pred.permute(0, 3, 1, 2).float() / 255.0
+
+    # add batch dimension
+    v_true = v_true.unsqueeze(0)
+    v_pred = v_pred.unsqueeze(0)
+
+    return compute_fvd(v_true, v_pred, max_items, device, batch_size)

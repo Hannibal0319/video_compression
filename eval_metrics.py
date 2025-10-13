@@ -1,7 +1,9 @@
 from ffmpeg_quality_metrics import FfmpegQualityMetrics
 import os
+import torch
+from fvd_metric import compute_fvd_from_paths
 # create an instance of FfmpegQualityMetrics
-input_video = "videos\Jockey_1920x1080_120fps_420_8bit_YUV.mp4"
+input_video = "videos/Jockey_1920x1080_120fps_420_8bit_YUV.mp4"
 
 compressed_videos = [e for e in os.listdir("compressed_videos") if e.startswith("Jockey_1920x1080_120fps_420_8bit_YUV")]
 print(compressed_videos)
@@ -23,3 +25,6 @@ for e in compressed_videos:
     print()
     print("VIF")
     print(sum([frame["scale_0"] for frame in metrics["vif"]]) / len(metrics["vif"]))
+    print("FVD")
+    print(compute_fvd_from_paths(input_video, compressed_video, max_items=100, device=torch.device("cuda"), batch_size=32))
+    print()
