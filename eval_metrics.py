@@ -2,8 +2,15 @@ from ffmpeg_quality_metrics import FfmpegQualityMetrics
 import os
 import torch
 from fvd_metric import compute_fvd_from_paths
+import argparse
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument("--print_all", action="store_true", help="Print all metrics")
+
 # create an instance of FfmpegQualityMetrics
-input_video = "videos/Jockey_1920x1080_120fps_420_8bit_YUV.mp4"
+input_video = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.mp4"
 
 compressed_videos = [e for e in os.listdir("compressed_videos") if e.startswith("Jockey_1920x1080_120fps_420_8bit_YUV")]
 print(compressed_videos)
@@ -12,19 +19,24 @@ for e in compressed_videos:
         continue
     compressed_video = "compressed_videos/" + e
     ffqm = FfmpegQualityMetrics(input_video, compressed_video)
+    print("Calculating metrics for", compressed_video)
+    metrics = ffqm.calculate(["psnr"])
 
-    metrics = ffqm.calculate(["ssim", "psnr", "vmaf"])
-    print("Results for", compressed_video)
-
-    print("SSIM")
-    print(sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"]))    
     print("PSNR")
-    print(sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"]))
+    psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])
+    print(psnr_avg)
+    '''
+    print("SSIM")
+    ssim_avg = sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"])
+    print(ssim_avg)
     print("VMAF")
-    print(sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"]))
-    print()
+    vmaf_avg = sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"])
+    print(vmaf_avg)
     print("VIF")
-    print(sum([frame["scale_0"] for frame in metrics["vif"]]) / len(metrics["vif"]))
+    vif_avg = sum([frame["scale_0"] for frame in metrics["vif"]]) / len(metrics["vif"])
+    print(vif_avg)
+    '''
     print("FVD")
-    print(compute_fvd_from_paths(input_video, compressed_video, max_items=100, device=torch.device("cuda"), batch_size=32))
+    fvd = compute_fvd_from_paths(input_video, compressed_video, max_items=100, device=torch.device("cuda"), batch_size=32)
+    print(fvd)
     print()

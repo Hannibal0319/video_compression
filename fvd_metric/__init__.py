@@ -1,1 +1,1 @@
-from .fvd import compute_fvd, compute_fvd_from_paths
+from .fvd import frechet_video_distance
