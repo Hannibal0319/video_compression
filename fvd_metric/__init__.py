@@ -1,1 +1,1 @@
-from .fvd import frechet_video_distance
+from .fvd import fvd_pipeline

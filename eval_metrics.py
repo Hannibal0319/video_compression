@@ -1,7 +1,7 @@
 from ffmpeg_quality_metrics import FfmpegQualityMetrics
 import os
 import torch
-from fvd_metric import compute_fvd_from_paths
+from fvd_metric import fvd_pipeline
 import argparse
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -37,6 +37,6 @@ for e in compressed_videos:
     print(vif_avg)
     '''
     print("FVD")
-    fvd = compute_fvd_from_paths(input_video, compressed_video, max_items=100, device=torch.device("cuda"), batch_size=32)
+    fvd = fvd_pipeline(input_video, compressed_video)
     print(fvd)
     print()

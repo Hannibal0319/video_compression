@@ -27,9 +27,7 @@ from __future__ import print_function
 
 import six
 import tensorflow.compat.v1 as tf
-import tensorflow_gan as tfgan
 import tensorflow_hub as hub
-
 
 def preprocess(videos, target_resolution):
   """Runs some preprocessing on the videos for I3D model.
@@ -53,91 +51,126 @@ def preprocess(videos, target_resolution):
   return scaled_videos
 
 
-def _is_in_graph(tensor_name):
-  """Checks whether a given tensor does exists in the graph."""
-  try:
-    tf.get_default_graph().get_tensor_by_name(tensor_name)
-  except KeyError:
-    return False
-  return True
+def create_id3_embedding(video_batch):
+
+    """
+    Convert a batch of videos to I3D embeddings (NumPy array)
+    video_batch: [B, T, H, W, C] float32 in range [-1, 1] or [0, 1]
+    """
+    i3d_model = hub.KerasLayer(
+    "https://tfhub.dev/deepmind/i3d-kinetics-400/1",
+    trainable=False
+    )
+    if len(video_batch.shape) != 5:
+        raise ValueError("Expected shape [B, T, H, W, C]")
+    
+    # Convert to tensor
+    video_batch = tf.convert_to_tensor(video_batch, dtype=tf.float32)
+    
+    # Resize frames to 224x224
+    B, T, H, W, C = video_batch.shape
+    video_batch = tf.reshape(video_batch, (-1, H, W, C))  # merge batch and time
+    video_batch = tf.image.resize(video_batch, (224, 224))
+    video_batch = tf.reshape(video_batch, (B, T, 224, 224, C))
+    video_batch_np = video_batch.numpy()  # works if in TF2 eager
 
 
-def create_id3_embedding(videos):
-  """Embeds the given videos using the Inflated 3D Convolution network.
 
-  Downloads the graph of the I3D from tf.hub and adds it to the graph on the
-  first call.
+    # Forward pass through KerasLayer (eager execution)
+    embeddings = i3d_model(video_batch)
+    embeddings_np = embeddings.numpy()  # convert to NumPy array
+    return embeddings_np  # safe in eager mode
 
-  Args:
-    videos: <float32>[batch_size, num_frames, height=224, width=224, depth=3].
-      Expected range is [-1, 1].
+import numpy as np
+from scipy import linalg
 
-  Returns:
-    embedding: <float32>[batch_size, embedding_size]. embedding_size depends
-               on the model used.
+def frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
+    """Numpy implementation of the Frechet Distance."""
+    mu1, mu2 = np.atleast_1d(mu1), np.atleast_1d(mu2)
+    sigma1, sigma2 = np.atleast_2d(sigma1), np.atleast_2d(sigma2)
 
-  Raises:
-    ValueError: when a provided embedding_layer is not supported.
-  """
+    diff = mu1 - mu2
 
-  batch_size = 16
-  module_spec = "https://tfhub.dev/deepmind/i3d-kinetics-400/1"
+    # Product might be almost singular
+    covmean, _ = linalg.sqrtm(sigma1.dot(sigma2), disp=False)
+    if not np.isfinite(covmean).all():
+        offset = np.eye(sigma1.shape[0]) * eps
+        covmean = linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
 
+    # Numerical error might give imaginary components
+    if np.iscomplexobj(covmean):
+        covmean = covmean.real
 
-  # Making sure that we import the graph separately for
-  # each different input video tensor.
-  module_name = "fvd_kinetics-400_id3_module_" + six.ensure_str(
-      videos.name).replace(":", "_")
-
-  assert_ops = [
-      tf.Assert(
-          tf.reduce_max(videos) <= 1.001,
-          ["max value in frame is > 1", videos]),
-      tf.Assert(
-          tf.reduce_min(videos) >= -1.001,
-          ["min value in frame is < -1", videos]),
-      tf.assert_equal(
-          tf.shape(videos)[0],
-          batch_size, ["invalid frame batch size: ",
-                       tf.shape(videos)],
-          summarize=6),
-  ]
-  with tf.control_dependencies(assert_ops):
-    videos = tf.identity(videos)
-
-  module_scope = "%s_apply_default/" % module_name
-
-  # To check whether the module has already been loaded into the graph, we look
-  # for a given tensor name. If this tensor name exists, we assume the function
-  # has been called before and the graph was imported. Otherwise we import it.
-  # Note: in theory, the tensor could exist, but have wrong shapes.
-  # This will happen if create_id3_embedding is called with a frames_placehoder
-  # of wrong size/batch size, because even though that will throw a tf.Assert
-  # on graph-execution time, it will insert the tensor (with wrong shape) into
-  # the graph. This is why we need the following assert.
-  video_batch_size = int(videos.shape[0])
-  assert video_batch_size in [batch_size, -1, None], "Invalid batch size"
-  tensor_name = module_scope + "RGB/inception_i3d/Mean:0"
-  if not _is_in_graph(tensor_name):
-    i3d_model = hub.Module(module_spec, name=module_name)
-    i3d_model(videos)
-
-  # gets the kinetics-i3d-400-logits layer
-  tensor_name = module_scope + "RGB/inception_i3d/Mean:0"
-  tensor = tf.get_default_graph().get_tensor_by_name(tensor_name)
-  return tensor
-
+    tr_covmean = np.trace(covmean)
+    fid = diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
+    return fid
 
 def calculate_fvd(real_activations,
                   generated_activations):
-  """Returns a list of ops that compute metrics as funcs of activations.
+    """Returns a list of ops that compute metrics as funcs of activations.
 
-  Args:
+    Args:
     real_activations: <float32>[num_samples, embedding_size]
     generated_activations: <float32>[num_samples, embedding_size]
 
-  Returns:
+    Returns:
     A scalar that contains the requested FVD.
-  """
-  return tfgan.eval.frechet_classifier_distance_from_activations(
-      real_activations, generated_activations)
+    """
+    
+    
+    mu1, sigma1 = np.mean(real_activations, axis=0), np.cov(real_activations, rowvar=False)
+    mu2, sigma2 = np.mean(generated_activations, axis=0), np.cov(generated_activations, rowvar=False)
+
+    fid = frechet_distance(mu1, sigma1, mu2, sigma2)
+
+    return fid
+
+def load_video(path):
+    """Loads a video from a file.
+
+    Args:
+        path: The path to the video file.
+    Returns:
+        A 5D numpy array of shape [num_videos, num_frames, height, width, channels].
+    """
+    import cv2
+    import numpy as np
+    cap = cv2.VideoCapture(path)
+    frames = []
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frames.append(frame)
+    cap.release()
+    video = np.array(frames)
+    video = video[np.newaxis, ...]  # Add batch dimension
+    return video
+
+def fvd_pipeline(real_videos_path, generated_videos_path):
+    """Computes FVD between two sets of videos.
+    """
+    real_videos = load_video(real_videos_path)
+    generated_videos = load_video(generated_videos_path)
+    real_videos = tf.convert_to_tensor(real_videos, dtype=tf.float32)
+    generated_videos = tf.convert_to_tensor(generated_videos, dtype=tf.float32)
+    
+
+    if real_videos.shape[0] != generated_videos.shape[0]:
+      raise ValueError("The number of videos must be the same for both sets.")
+
+    real_activations = []
+    generated_activations = []
+
+    real_preprocessed = preprocess(real_videos, (224, 224))
+    generated_preprocessed = preprocess(generated_videos, (224, 224))
+    real_embeddings = create_id3_embedding(real_preprocessed)
+    generated_embeddings = create_id3_embedding(generated_preprocessed)
+    real_activations.append(real_embeddings)
+    generated_activations.append(generated_embeddings)
+
+    real_activations = np.concatenate(real_activations, axis=0)
+    generated_activations = np.concatenate(generated_activations, axis=0)
+
+    return calculate_fvd(real_activations, generated_activations)
