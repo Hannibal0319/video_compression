@@ -1,0 +1,11 @@
+pytorch-msssim
+ffmpeg-quality-metrics
+numpy
+opencv-python
+scipy
+Pillow
+tqdm
+lpips
+torch
+torchvision
+tensorflow
