@@ -38,6 +38,8 @@ MANIFEST
 *.avi
 *.mov
 *.zip
+*.7z
+*.tar.gz
 
 # Installer logs
 pip-log.txt

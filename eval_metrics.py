@@ -10,7 +10,7 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--print_all", action="store_true", help="Print all metrics")
 
 # create an instance of FfmpegQualityMetrics
-input_video = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.mp4"
+input_video = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
 
 compressed_videos = [e for e in os.listdir("compressed_videos") if e.startswith("Jockey_1920x1080_120fps_420_8bit_YUV")]
 print(compressed_videos)
@@ -35,8 +35,9 @@ for e in compressed_videos:
     print("VIF")
     vif_avg = sum([frame["scale_0"] for frame in metrics["vif"]]) / len(metrics["vif"])
     print(vif_avg)
-    '''
+    
     print("FVD")
     fvd = fvd_pipeline(input_video, compressed_video)
     print(fvd)
     print()
+    '''
