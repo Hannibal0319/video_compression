@@ -1,7 +1,6 @@
 import argparse, concurrent.futures as fut, json, os, shlex, subprocess, sys, time
 from pathlib import Path
 
-crfs = [i for i in range(19, 40)]  # CRF values from 19 to 39
 
 CODEC_PROFILES = {
     "h264": {
@@ -35,12 +34,11 @@ def ffprobe_json(path):
     rc, out = run(cmd)
     return json.loads(out) if rc == 0 else {}
 
-def transcode_one(src, dst_dir, codec, vmaf_ref=None):
+def transcode_one(src, dst_dir, codec, vmaf_ref=None,level=2):
     prof = CODEC_PROFILES[codec]
     out_path = (dst_dir / (src.stem + f'_{codec}.' + prof["ext"])).absolute()
     os.makedirs(dst_dir, exist_ok=True)
     src_abs = src.absolute()
-    level = 2
     level_params = compression_level_params(level)
     cmd = [
         "ffmpeg", "-hide_banner", "-y",
@@ -70,30 +68,56 @@ def transcode_one(src, dst_dir, codec, vmaf_ref=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("input_dir")
-    ap.add_argument("output_dir")
+    ap.add_argument("input_dir", help="Input directory containing YUV files",default="videos")
+    ap.add_argument("output_dir", help="Output directory for transcoded videos", default="compressed_videos")
     ap.add_argument("--codecs","-c", nargs="+", default=["h264" ,"hevc","av1","vp9"], choices=CODEC_PROFILES.keys())
     ap.add_argument("--workers", type=int, default=os.cpu_count() or 4)
     ap.add_argument("--vmaf", action="store_true", help="Compute VMAF vs original")
     args = ap.parse_args()
     
     in_dir, out_dir = Path(args.input_dir), Path(args.output_dir)
-    videos = [p for p in in_dir.rglob("*") if p.suffix.lower() in {".mp4",".mov",".mkv",".mxf",".avi",".webm"}]
-    if not videos:
+    
+    in_dir_UVG = in_dir / "UVG"
+    in_dir_HEVC = in_dir / "HEVC_CLASS_B"
+    
+    videos_UVG = [p for p in in_dir_UVG.rglob("*.y4m")]
+    videos_HEVC = [p for p in in_dir_HEVC.rglob("*.y4m")]
+
+    levels = [1, 2, 3]
+
+    if not videos_UVG:
+        print("No input videos found.", file=sys.stderr)
+        sys.exit(2)
+    if not videos_HEVC:
         print("No input videos found.", file=sys.stderr)
         sys.exit(2)
 
     tasks = []
-    print(f"Transcoding {len(videos)} videos to {args.codecs} using {args.workers} workers...")
-    with fut.ThreadPoolExecutor(max_workers=args.workers) as ex:
-        for src in videos:
-            dst_sub = out_dir / src.relative_to(in_dir).parent
-            for codec in args.codecs:
-                tasks.append(ex.submit(transcode_one, src, dst_sub, codec, vmaf_ref=str(src) if args.vmaf else None))
-        for t in fut.as_completed(tasks):
-            meta, _ = t.result()
+    for videos in [videos_UVG, videos_HEVC]:
+        print(f"Transcoding {len(videos)} videos to {args.codecs} using {args.workers} workers...")
+        with fut.ThreadPoolExecutor(max_workers=args.workers) as ex:
+            for src in videos:
+                for level in levels:
+                    dst_sub = out_dir / src.relative_to(in_dir).parent
+                    for codec in args.codecs:
+                        tasks.append(ex.submit(transcode_one, src, dst_sub, codec, vmaf_ref=str(src) if args.vmaf else None, level=level))
+            for t in fut.as_completed(tasks):
+                meta, _ = t.result()
+                print(json.dumps(meta, indent=2))
+
+def main_only_one():
+    src = Path("videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m")
+    dst_dir = Path("compressed_videos/UVG")
+    codecs = ["h264", "hevc", "vp9"]
+    levels = [1, 2, 3]
+    for codec in codecs:
+        for level in levels:
+            meta, _ = transcode_one(src, dst_dir, codec, level=level)
+            print(f"Transcoded {src} to {dst_dir} using {codec} at level {level}")
             print(json.dumps(meta, indent=2))
+    print("All done!")
+    
 
 if __name__ == "__main__":
-    main()
-    # videos\Jockey_1920x1080_120fps_420_8bit_YUV.mp4
+    main_only_one()
+    #main()

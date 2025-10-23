@@ -32,6 +32,7 @@ MANIFEST
 *.manifest
 *.spec
 
+*.y4m
 *.yuv
 *.mp4
 *.mkv

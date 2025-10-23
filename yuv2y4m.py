@@ -2,12 +2,11 @@
 import subprocess
 import cv2
 import numpy as np
-import tempfile
 from pathlib import Path
 
 def yuv2y4m(input_yuv, width, height, fps=30):
-    output_y4m = str(Path(tempfile.gettempdir()) / (Path(input_yuv).stem + ".y4m"))
-    
+    output_y4m = str(Path(input_yuv).with_suffix(".y4m"))
+
     cmd = [
         "ffmpeg", "-hide_banner", "-y",
         "-framerate", str(fps), "-video_size", f"{width}x{height}",
