@@ -83,8 +83,6 @@ def main():
     videos_UVG = [p for p in in_dir_UVG.rglob("*.y4m")]
     videos_HEVC = [p for p in in_dir_HEVC.rglob("*.y4m")]
 
-    levels = [1, 2, 3]
-
     if not videos_UVG:
         print("No input videos found.", file=sys.stderr)
         sys.exit(2)
@@ -93,13 +91,19 @@ def main():
         sys.exit(2)
 
     tasks = []
-    for videos in [videos_UVG, videos_HEVC]:
-        print(f"Transcoding {len(videos)} videos to {args.codecs} using {args.workers} workers...")
+    videos = [videos_UVG, videos_HEVC]
+    in_dirs = [in_dir_UVG, in_dir_HEVC]
+    datasets = ["UVG", "HEVC_CLASS_B"]
+    levels = [1, 2, 3]
+
+    for i in range(len(videos)):
+        print(f"Transcoding {len(videos[i])} videos to {args.codecs} using {args.workers} workers...")
         with fut.ThreadPoolExecutor(max_workers=args.workers) as ex:
-            for src in videos:
+            for src in videos[i]:
                 for level in levels:
-                    dst_sub = out_dir / src.relative_to(in_dir).parent
                     for codec in args.codecs:
+                        dst_sub = out_dir / datasets[i] / codec / str(level) / src.relative_to(in_dirs[i]).parent
+
                         tasks.append(ex.submit(transcode_one, src, dst_sub, codec, vmaf_ref=str(src) if args.vmaf else None, level=level))
             for t in fut.as_completed(tasks):
                 meta, _ = t.result()
@@ -107,13 +111,13 @@ def main():
 
 def main_only_one():
     src = Path("videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m")
-    dst_dir = Path("compressed_videos/UVG")
+    dst_dir_stem = Path("compressed_videos/UVG")
     codecs = ["h264", "hevc", "vp9"]
     levels = [1, 2, 3]
     for codec in codecs:
         for level in levels:
-            meta, _ = transcode_one(src, dst_dir, codec, level=level)
-            print(f"Transcoded {src} to {dst_dir} using {codec} at level {level}")
+            meta, _ = transcode_one(src, dst_dir_stem / codec / str(level), codec, level=level)
+            print(f"Transcoded {src} to {dst_dir_stem / codec / str(level)} using {codec} at level {level}")
             print(json.dumps(meta, indent=2))
     print("All done!")
     
