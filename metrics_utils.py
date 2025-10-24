@@ -86,3 +86,33 @@ def MS_SSIM(orig_frames, comp_frames):
         torch.from_numpy(comp_frames).permute(0, 3, 1, 2).float(),
     )
     return ms_ssim_value.item()
+
+if __name__ == "__main__":
+    # Example usage
+    orig_video_path = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
+    comp_video_path = "compressed_videos/UVG/h264/1/Jockey_1920x1080_120fps_420_8bit_YUV.mkv"
+
+    orig_cap = cv2.VideoCapture(orig_video_path)
+    comp_cap = cv2.VideoCapture(comp_video_path)
+
+    orig_frames = []
+    comp_frames = []
+
+    while True:
+        ret_orig, frame_orig = orig_cap.read()
+        ret_comp, frame_comp = comp_cap.read()
+        if not ret_orig or not ret_comp:
+            break
+        orig_frames.append(frame_orig)
+        comp_frames.append(frame_comp)
+
+    orig_cap.release()
+    comp_cap.release()
+
+    temporal_psnr = compute_temporal_psnr(orig_frames, comp_frames)
+    temporal_ssim = compute_temporal_SSIM(orig_frames, comp_frames)
+    ms_ssim_value = MS_SSIM(np.array(orig_frames), np.array(comp_frames))
+
+    print(f"Temporal PSNR: {temporal_psnr}")
+    print(f"Temporal SSIM: {temporal_ssim}")
+    print(f"MS-SSIM: {ms_ssim_value}")
