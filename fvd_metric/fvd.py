@@ -24,10 +24,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
-import six
+import os
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 import tensorflow.compat.v1 as tf
 import tensorflow_hub as hub
+
+
 
 def preprocess(videos, target_resolution):
   """Runs some preprocessing on the videos for I3D model.
@@ -57,10 +59,17 @@ def create_id3_embedding(video_batch):
     Convert a batch of videos to I3D embeddings (NumPy array)
     video_batch: [B, T, H, W, C] float32 in range [-1, 1] or [0, 1]
     """
-    i3d_model = hub.KerasLayer(
-    "https://tfhub.dev/deepmind/i3d-kinetics-400/1",
-    trainable=False
-    )
+    local = True
+    if local:
+        i3d_model = hub.KerasLayer(
+        "./models/i3d-kinetics-400-v1",
+        trainable=False
+        )
+    else:
+        i3d_model = hub.KerasLayer(
+        "https://tfhub.dev/deepmind/i3d-kinetics-400/1",
+        trainable=False
+        )
     if len(video_batch.shape) != 5:
         raise ValueError("Expected shape [B, T, H, W, C]")
     
@@ -116,14 +125,40 @@ def calculate_fvd(real_activations,
     Returns:
     A scalar that contains the requested FVD.
     """
-    
-    
-    mu1, sigma1 = np.mean(real_activations, axis=0), np.cov(real_activations, rowvar=False)
-    mu2, sigma2 = np.mean(generated_activations, axis=0), np.cov(generated_activations, rowvar=False)
+    # Ensure numpy arrays and 2D shapes [N, D]
+    real_activations = np.asarray(real_activations)
+    generated_activations = np.asarray(generated_activations)
+    if real_activations.ndim == 1:
+        real_activations = real_activations[np.newaxis, :]
+    if generated_activations.ndim == 1:
+        generated_activations = generated_activations[np.newaxis, :]
+
+    # Use float64 for numerical stability
+    real_activations = real_activations.astype(np.float64)
+    generated_activations = generated_activations.astype(np.float64)
+
+    # Means
+    mu1 = np.mean(real_activations, axis=0)
+    mu2 = np.mean(generated_activations, axis=0)
+
+    # Covariances: handle single-sample case explicitly (cov = zero matrix).
+    if real_activations.shape[0] == 1:
+        sigma1 = np.zeros((real_activations.shape[1], real_activations.shape[1]), dtype=np.float64)
+    else:
+        sigma1 = np.cov(real_activations, rowvar=False, ddof=0).astype(np.float64)
+
+    if generated_activations.shape[0] == 1:
+        sigma2 = np.zeros((generated_activations.shape[1], generated_activations.shape[1]), dtype=np.float64)
+    else:
+        sigma2 = np.cov(generated_activations, rowvar=False, ddof=0).astype(np.float64)
+
+    # Sanitize any NaNs / Infs (defensive)
+    sigma1 = np.nan_to_num(sigma1, nan=0.0, posinf=0.0, neginf=0.0)
+    sigma2 = np.nan_to_num(sigma2, nan=0.0, posinf=0.0, neginf=0.0)
 
     fid = frechet_distance(mu1, sigma1, mu2, sigma2)
 
-    return fid
+    return float(fid)
 
 def load_video(path):
     """Loads a video from a file.
@@ -149,28 +184,19 @@ def load_video(path):
     return video
 
 def fvd_pipeline(real_videos_path, generated_videos_path):
-    """Computes FVD between two sets of videos.
-    """
+    """Computes FVD between two single videos (one each)."""
     real_videos = load_video(real_videos_path)
     generated_videos = load_video(generated_videos_path)
     real_videos = tf.convert_to_tensor(real_videos, dtype=tf.float32)
     generated_videos = tf.convert_to_tensor(generated_videos, dtype=tf.float32)
     
+    # Expect exactly one video per input (batch size 1) for pairwise comparison.
+    if real_videos.shape[0] != 1 or generated_videos.shape[0] != 1:
+      raise ValueError("fvd_pipeline expects exactly one video per input (batch size 1).")
 
-    if real_videos.shape[0] != generated_videos.shape[0]:
-      raise ValueError("The number of videos must be the same for both sets.")
+    result = calculate_fvd(
+        create_id3_embedding(preprocess(real_videos, (224, 224))),
+        create_id3_embedding(preprocess(generated_videos, (224, 224)))
+    )
 
-    real_activations = []
-    generated_activations = []
-
-    real_preprocessed = preprocess(real_videos, (224, 224))
-    generated_preprocessed = preprocess(generated_videos, (224, 224))
-    real_embeddings = create_id3_embedding(real_preprocessed)
-    generated_embeddings = create_id3_embedding(generated_preprocessed)
-    real_activations.append(real_embeddings)
-    generated_activations.append(generated_embeddings)
-
-    real_activations = np.concatenate(real_activations, axis=0)
-    generated_activations = np.concatenate(generated_activations, axis=0)
-
-    return calculate_fvd(real_activations, generated_activations)
+    return result

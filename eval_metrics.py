@@ -1,11 +1,12 @@
 from ffmpeg_quality_metrics import FfmpegQualityMetrics
 import os
-import torch
-from fvd_metric import fvd_pipeline
+
 import argparse
 import warnings
 import json
+import fvd_metric.fvd as fvd
 warnings.filterwarnings("ignore", category=UserWarning)
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--print_all", action="store_true", help="Print all metrics")
@@ -13,23 +14,30 @@ arg_parser.add_argument("--print_all", action="store_true", help="Print all metr
 # create an instance of FfmpegQualityMetrics
 input_video = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
 
-compressed_videos = [f for f in os.listdir("compressed_videos/UVG/h264/1/")]
-print(compressed_videos)
+codec = "h264"
+level = "3"  # 1, 2, 3, 4, 5
+
+compressed_videos = [f for f in os.listdir("compressed_videos/UVG/" + codec + "/" + level + "/")]
+print("\nCompressed videos:", compressed_videos, "\n")
 
 json_output = {}
+
 for e in compressed_videos:
     if "mkv" in e or "json" in e:
         continue
-    compressed_video = "compressed_videos/" + e
-    ffqm = FfmpegQualityMetrics(input_video, compressed_video)
+    compressed_video = "compressed_videos/UVG/" + codec + "/" + level + "/" + e
+    ffqm = FfmpegQualityMetrics(input_video, compressed_video,verbose=True,progress=True,threads=10)
+    print("-"*40)
     print("Calculating metrics for", compressed_video)
-    metrics = ffqm.calculate(["psnr"])
-
+    print("-"*40)
+    json_output[e] = {}
+    '''
+    metrics = ffqm.calculate(["psnr", "ssim", "vmaf"])
+    print("Metrics:", metrics.keys())
     print("PSNR")
     psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])
-    json_output[e] = {"psnr": psnr_avg}
+    json_output[e]["psnr"] = psnr_avg
     print(psnr_avg)
-    '''
     print("SSIM")
     ssim_avg = sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"])
     json_output[e]["ssim"] = ssim_avg
@@ -38,16 +46,14 @@ for e in compressed_videos:
     vmaf_avg = sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"])
     json_output[e]["vmaf"] = vmaf_avg
     print(vmaf_avg)
-    print("VIF")
-    vif_avg = sum([frame["scale_0"] for frame in metrics["vif"]]) / len(metrics["vif"])
-    json_output[e]["vif"] = vif_avg
-    print(vif_avg)
-    
-    print("FVD")
-    fvd = fvd_pipeline(input_video, compressed_video)
-    json_output[e]["fvd"] = fvd
-    print(fvd)
-    print()
     '''
-    with open("results/eval_metrics_uvg_h264_level1.json", "w") as f:
+    print("FVD")
+    
+    fvd_value = fvd.fvd_pipeline(input_video, compressed_video)
+    
+    print(fvd_value)
+    json_output[e]["fvd"] = fvd_value
+    print()
+
+    with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "w") as f:
         json.dump(json_output, f, indent=4)
