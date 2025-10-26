@@ -5,6 +5,8 @@ import argparse
 import warnings
 import json
 import fvd_metric.fvd as fvd
+from metrics_utils import compute_temporal_psnr, compute_temporal_SSIM, MS_SSIM
+
 warnings.filterwarnings("ignore", category=UserWarning)
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
@@ -46,13 +48,14 @@ for e in compressed_videos:
     vmaf_avg = sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"])
     json_output[e]["vmaf"] = vmaf_avg
     print(vmaf_avg)
-    '''
+    
     print("FVD")
-    
     fvd_value = fvd.fvd_pipeline(input_video, compressed_video)
-    
     print(fvd_value)
     json_output[e]["fvd"] = fvd_value
+    '''
+    print("tSSIM")
+    
     print()
 
     with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "w") as f:
