@@ -5,7 +5,7 @@ import argparse
 import warnings
 import json
 import fvd_metric.fvd as fvd
-from metrics_utils import compute_temporal_psnr, compute_temporal_SSIM, MS_SSIM
+from metrics_utils import tPSNR_by_paths, tSSIM_by_paths
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -59,23 +59,17 @@ for tuple in compressed_videos:
     fvd_value = fvd.fvd_pipeline(input_video, compressed_video)
     print(fvd_value)
     json_output[video]["fvd"] = fvd_value
-    '''
+    
     print("tSSIM")
-    temporal_ssim = compute_temporal_SSIM(
-        ffqm._get_frames_from_video(input_video),
-        ffqm._get_frames_from_video(compressed_video)
-    )
+    temporal_ssim = tSSIM_by_paths(input_video, compressed_video)
     print(temporal_ssim)
     json_output[video]["tssim"] = temporal_ssim
 
     print("tPSNR")
-    temporal_psnr = compute_temporal_psnr(
-        ffqm._get_frames_from_video(input_video),
-        ffqm._get_frames_from_video(compressed_video)
-    )
+    temporal_psnr = tPSNR_by_paths(input_video, compressed_video)
     print(temporal_psnr)
     json_output[video]["tpsnr"] = temporal_psnr
-    
+    '''
     print()
 
     # write to file, but also do not delete other metrics already present
