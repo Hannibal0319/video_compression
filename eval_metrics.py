@@ -8,6 +8,8 @@ import fvd_metric.fvd as fvd
 from metrics_utils import compute_temporal_psnr, compute_temporal_SSIM, MS_SSIM
 
 warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 arg_parser = argparse.ArgumentParser()
@@ -33,17 +35,18 @@ for e in compressed_videos:
     print("Calculating metrics for", compressed_video)
     print("-"*40)
     json_output[e] = {}
-    '''
-    metrics = ffqm.calculate(["psnr", "ssim", "vmaf"])
+    metrics = ffqm.calculate(["psnr", "ssim"])
     print("Metrics:", metrics.keys())
     print("PSNR")
     psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])
     json_output[e]["psnr"] = psnr_avg
     print(psnr_avg)
     print("SSIM")
+    
     ssim_avg = sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"])
     json_output[e]["ssim"] = ssim_avg
     print(ssim_avg)
+    '''
     print("VMAF")
     vmaf_avg = sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"])
     json_output[e]["vmaf"] = vmaf_avg
@@ -53,17 +56,41 @@ for e in compressed_videos:
     fvd_value = fvd.fvd_pipeline(input_video, compressed_video)
     print(fvd_value)
     json_output[e]["fvd"] = fvd_value
-    '''
-    print("tSSIM")
-    print("tPSNR")
     
+    print("tSSIM")
+    temporal_ssim = compute_temporal_SSIM(
+        ffqm._get_frames_from_video(input_video),
+        ffqm._get_frames_from_video(compressed_video)
+    )
+    print(temporal_ssim)
+    json_output[e]["tssim"] = temporal_ssim
+
+    print("tPSNR")
+    temporal_psnr = compute_temporal_psnr(
+        ffqm._get_frames_from_video(input_video),
+        ffqm._get_frames_from_video(compressed_video)
+    )
+    print(temporal_psnr)
+    json_output[e]["tpsnr"] = temporal_psnr
+    '''
     print()
 
-    with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "w") as f:
-        # write to file, but also do not delete other metrics already present
-        if os.path.exists("results/eval_metrics_uvg_" + codec + "_level" + level + ".json"):
+    # write to file, but also do not delete other metrics already present
+    if os.path.exists("results/eval_metrics_uvg_" + codec + "_level" + level + ".json"):
+        print("File named results/eval_metrics_uvg_" + codec + "_level" + level + ".json exists, updating it.")
+        
+        with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "r") as f:
             existing_data = json.load(f)
-            existing_data.update(json_output)
+        
+        with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "w") as f:
+            for video_name in json_output:
+                if video_name in existing_data:
+                    for key in json_output[video_name]:
+                        existing_data[video_name][key] = json_output[video_name][key]
+                else:
+                    existing_data[video_name] = json_output[video_name]
             json.dump(existing_data, f, indent=4)
-        else:
+    else:
+        print("Creating new file results/eval_metrics_uvg_" + codec + "_level" + level + ".json.")
+        with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "w") as f:
             json.dump(json_output, f, indent=4)
