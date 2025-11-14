@@ -9,3 +9,4 @@ lpips
 torch
 torchvision
 tensorflow
+scikit-image

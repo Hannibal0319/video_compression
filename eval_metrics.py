@@ -55,8 +55,15 @@ for e in compressed_videos:
     json_output[e]["fvd"] = fvd_value
     '''
     print("tSSIM")
+    print("tPSNR")
     
     print()
 
     with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "w") as f:
-        json.dump(json_output, f, indent=4)
+        # write to file, but also do not delete other metrics already present
+        if os.path.exists("results/eval_metrics_uvg_" + codec + "_level" + level + ".json"):
+            existing_data = json.load(f)
+            existing_data.update(json_output)
+            json.dump(existing_data, f, indent=4)
+        else:
+            json.dump(json_output, f, indent=4)
