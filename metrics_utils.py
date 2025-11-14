@@ -124,6 +124,50 @@ def MS_SSIM(orig_frames, comp_frames):
     )
     return ms_ssim_value.item()
 
+def tPSNR_by_paths(orig_video_path, comp_video_path,length=100):
+    orig_cap = cv2.VideoCapture(orig_video_path)
+    comp_cap = cv2.VideoCapture(comp_video_path)
+
+    orig_frames = []
+    comp_frames = []
+    i=0
+    while True:
+        ret_orig, frame_orig = orig_cap.read()
+        ret_comp, frame_comp = comp_cap.read()
+        if not ret_orig or not ret_comp or i>=length:  # limit to first 'length' frames for speed
+            break
+            
+        orig_frames.append(frame_orig)
+        comp_frames.append(frame_comp)
+
+    orig_cap.release()
+    comp_cap.release()
+
+    temporal_psnr = compute_temporal_psnr(orig_frames, comp_frames)
+    return temporal_psnr
+
+def tSSIM_by_paths(orig_video_path, comp_video_path,length=100):
+    orig_cap = cv2.VideoCapture(orig_video_path)
+    comp_cap = cv2.VideoCapture(comp_video_path)
+
+    orig_frames = []
+    comp_frames = []
+    i=0
+    while True:
+        ret_orig, frame_orig = orig_cap.read()
+        ret_comp, frame_comp = comp_cap.read()
+        if not ret_orig or not ret_comp or i>=length:  # limit to first 'length' frames for speed
+            break
+            
+        orig_frames.append(frame_orig)
+        comp_frames.append(frame_comp)
+
+    orig_cap.release()
+    comp_cap.release()
+
+    temporal_ssim = compute_temporal_SSIM(orig_frames, comp_frames)
+    return temporal_ssim
+
 if __name__ == "__main__":
     # Example usage
     orig_video_path = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"

@@ -18,52 +18,55 @@ arg_parser.add_argument("--print_all", action="store_true", help="Print all metr
 # create an instance of FfmpegQualityMetrics
 input_video = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
 
-codec = "h264"
-level = "3"  # 1, 2, 3, 4, 5
+codecs = ["h264"]
+levels = ["1","2","3"]
 
-compressed_videos = [f for f in os.listdir("compressed_videos/UVG/" + codec + "/" + level + "/")]
+compressed_videos =[] 
+for codec in codecs:
+    for level in levels:
+        compressed_videos.extend([(video,codec,level) for video in os.listdir("compressed_videos/UVG/" + codec + "/" + level + "/")])
+compressed_videos = list(filter(lambda x: not x[0].endswith(".json"), compressed_videos))
 print("\nCompressed videos:", compressed_videos, "\n")
 
 json_output = {}
 
-for e in compressed_videos:
-    if "mkv" in e or "json" in e:
-        continue
-    compressed_video = "compressed_videos/UVG/" + codec + "/" + level + "/" + e
+for tuple in compressed_videos:
+    video, codec, level = tuple
+    compressed_video = "compressed_videos/UVG/" + codec + "/" + level + "/" + video
     ffqm = FfmpegQualityMetrics(input_video, compressed_video,verbose=True,progress=True,threads=10)
     print("-"*40)
     print("Calculating metrics for", compressed_video)
     print("-"*40)
-    json_output[e] = {}
-    metrics = ffqm.calculate(["psnr", "ssim"])
+    json_output[video] = {}
+    metrics = ffqm.calculate(["psnr", "ssim", "vmaf"])
     print("Metrics:", metrics.keys())
     print("PSNR")
     psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])
-    json_output[e]["psnr"] = psnr_avg
+    json_output[video]["psnr"] = psnr_avg
     print(psnr_avg)
     print("SSIM")
     
     ssim_avg = sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"])
-    json_output[e]["ssim"] = ssim_avg
+    json_output[video]["ssim"] = ssim_avg
     print(ssim_avg)
-    '''
+    
     print("VMAF")
     vmaf_avg = sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"])
-    json_output[e]["vmaf"] = vmaf_avg
+    json_output[video]["vmaf"] = vmaf_avg
     print(vmaf_avg)
-    
+    '''
     print("FVD")
     fvd_value = fvd.fvd_pipeline(input_video, compressed_video)
     print(fvd_value)
-    json_output[e]["fvd"] = fvd_value
-    
+    json_output[video]["fvd"] = fvd_value
+    '''
     print("tSSIM")
     temporal_ssim = compute_temporal_SSIM(
         ffqm._get_frames_from_video(input_video),
         ffqm._get_frames_from_video(compressed_video)
     )
     print(temporal_ssim)
-    json_output[e]["tssim"] = temporal_ssim
+    json_output[video]["tssim"] = temporal_ssim
 
     print("tPSNR")
     temporal_psnr = compute_temporal_psnr(
@@ -71,8 +74,8 @@ for e in compressed_videos:
         ffqm._get_frames_from_video(compressed_video)
     )
     print(temporal_psnr)
-    json_output[e]["tpsnr"] = temporal_psnr
-    '''
+    json_output[video]["tpsnr"] = temporal_psnr
+    
     print()
 
     # write to file, but also do not delete other metrics already present
