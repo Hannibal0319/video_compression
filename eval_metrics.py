@@ -18,7 +18,7 @@ arg_parser.add_argument("--print_all", action="store_true", help="Print all metr
 # create an instance of FfmpegQualityMetrics
 input_video = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
 
-codecs = ["h264"]
+codecs = ["h264","hevc","vp9"]
 levels = ["1","2","3"]
 
 compressed_videos =[] 

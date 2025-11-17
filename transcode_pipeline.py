@@ -68,10 +68,10 @@ def transcode_one(src, dst_dir, codec, vmaf_ref=None,level=2):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("input_dir", help="Input directory containing YUV files",default="videos")
-    ap.add_argument("output_dir", help="Output directory for transcoded videos", default="compressed_videos")
-    ap.add_argument("--codecs","-c", nargs="+", default=["h264" ,"hevc","av1","vp9"], choices=CODEC_PROFILES.keys())
-    ap.add_argument("--workers", type=int, default=os.cpu_count() or 4)
+    ap.add_argument("--input_dir", help="Input directory containing YUV files",default="videos")
+    ap.add_argument("--output_dir", help="Output directory for transcoded videos", default="compressed_videos")
+    ap.add_argument("--codecs","-c", nargs="+", default=["h264" ,"hevc","vp9"], choices=CODEC_PROFILES.keys())
+    ap.add_argument("--workers", type=int, default=os.cpu_count()-4 or 4)
     ap.add_argument("--vmaf", action="store_true", help="Compute VMAF vs original")
     args = ap.parse_args()
     
@@ -94,17 +94,21 @@ def main():
     videos = [videos_UVG, videos_HEVC]
     in_dirs = [in_dir_UVG, in_dir_HEVC]
     datasets = ["UVG", "HEVC_CLASS_B"]
-    levels = [1, 2, 3]
+    levels = [4, 8]
 
     for i in range(len(videos)):
         print(f"Transcoding {len(videos[i])} videos to {args.codecs} using {args.workers} workers...")
         with fut.ThreadPoolExecutor(max_workers=args.workers) as ex:
             for src in videos[i]:
+                
                 for level in levels:
                     for codec in args.codecs:
+                        if os.path.exists(out_dir / datasets[i] / codec / str(level) / src.relative_to(in_dirs[i]).parent / (src.stem + f'_{codec}.' + CODEC_PROFILES[codec]["ext"])):
+                            print(f"Skipping existing file for {src} at level {level} with codec {codec}")
+                            continue
                         dst_sub = out_dir / datasets[i] / codec / str(level) / src.relative_to(in_dirs[i]).parent
-
                         tasks.append(ex.submit(transcode_one, src, dst_sub, codec, vmaf_ref=str(src) if args.vmaf else None, level=level))
+            
             for t in fut.as_completed(tasks):
                 meta, _ = t.result()
                 print(json.dumps(meta, indent=2))
@@ -123,5 +127,5 @@ def main_only_one():
     
 
 if __name__ == "__main__":
-    main_only_one()
-    #main()
+    #main_only_one()
+    main()
