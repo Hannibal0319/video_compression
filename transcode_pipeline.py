@@ -116,7 +116,7 @@ def main():
 def main_only_one():
     src = Path("videos/UVG/Beauty_1920x1080_120fps_420_8bit_YUV.y4m")
     dst_dir_stem = Path("compressed_videos/UVG")
-    codecs = ["hevc"]
+    codecs = ["vp9"]
     levels = [1.5,2.5,4,8]
     for codec in codecs:
         for level in levels:
