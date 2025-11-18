@@ -19,7 +19,7 @@ arg_parser.add_argument("--print_all", action="store_true", help="Print all metr
 input_video = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
 
 codecs = ["h264","hevc","vp9"]
-levels = ["1","2","3"]
+levels = ["1.5","2.5","4","8"]
 
 compressed_videos =[] 
 for codec in codecs:
@@ -29,16 +29,25 @@ compressed_videos = list(filter(lambda x: not x[0].endswith(".json"), compressed
 print("\nCompressed videos:", compressed_videos, "\n")
 
 json_output = {}
+compute_metrics =["psnr","ssim","vmaf"]  #,"fvd","tssim","tpsnr"]
 
 for tuple in compressed_videos:
     video, codec, level = tuple
     compressed_video = "compressed_videos/UVG/" + codec + "/" + level + "/" + video
+    # skip if already computed
+    if os.path.exists("results/eval_metrics_uvg_" + codec + "_level" + level + ".json"):
+        with open("results/eval_metrics_uvg_" + codec + "_level" + level + ".json", "r") as f:
+            existing_data = json.load(f)
+        if video in existing_data and all(metric in existing_data[video] for metric in compute_metrics):
+            print(f"Metrics for {video} with codec {codec} at level {level} already computed, skipping.")
+            continue
+
     ffqm = FfmpegQualityMetrics(input_video, compressed_video,verbose=True,progress=True,threads=10)
     print("-"*40)
     print("Calculating metrics for", compressed_video)
     print("-"*40)
     json_output[video] = {}
-    metrics = ffqm.calculate(["psnr", "ssim", "vmaf"])
+    metrics = ffqm.calculate(compute_metrics)
     print("Metrics:", metrics.keys())
     print("PSNR")
     psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])

@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 
 datasets = ["UVG"]
-levels = [1, 2, 3]
+levels = [1,1.5, 2, 2.5, 3,4,8]
 codecs = ["h264", "hevc", "vp9"]
 
 dataset_2_files = {
@@ -253,7 +253,7 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
                     results_summary[codec]["SSIM"].append(video_data["ssim"])
                     results_summary[codec]["VMAF"].append(video_data["vmaf"])
         
-        # Average metrics per codec
+        # Average metrics per codec (original values)
         avg_metrics = {}
         for codec, metrics in results_summary.items():
             avg_metrics[codec] = {
@@ -262,10 +262,20 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
                 "VMAF": np.mean(metrics["VMAF"])
             }
         
-        # Radar plot
+        # Normalize each metric to a common 0-100 scale so SSIM is visible on the radar
+        metric_ranges = {
+            "PSNR": (0.0, 50.0),   # expected PSNR range
+            "SSIM": (0.0, 1.0),    # SSIM range
+            "VMAF": (0.0, 100.0)   # VMAF range
+        }
+        def normalize_to_100(value, metric):
+            lo, hi = metric_ranges[metric]
+            if hi == lo:
+                return 0.0
+            return 100.0 * (np.clip(value, lo, hi) - lo) / (hi - lo)
+
         labels = ["PSNR", "SSIM", "VMAF"]
         num_vars = len(labels)
-
         angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
         angles += angles[:1]
 
@@ -273,25 +283,29 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
         ax = plt.subplot(111, polar=True)
 
         for codec, metrics in avg_metrics.items():
-            values = [metrics[label] for label in labels]
-            values += values[:1]
-            ax.plot(angles, values, label=codec.upper())
-            ax.fill(angles, values, alpha=0.25)
+            values_orig = [metrics[label] for label in labels]
+            values_norm = [normalize_to_100(v, label) for v, label in zip(values_orig, labels)]
+            values_norm += values_norm[:1]
+            ax.plot(angles, values_norm, label=f"{codec.upper()} ({', '.join([f'{l}: {round(v,3)}' for l,v in zip(labels, values_orig)])})")
+            ax.fill(angles, values_norm, alpha=0.25)
 
-        ax.set_yticklabels([])
+        # Show percentage ticks (normalized)
+        ax.set_yticks([0, 25, 50, 75, 100])
+        ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"])
         ax.set_xticks(angles[:-1])
         ax.set_xticklabels(labels)
-        plt.title(f"Average Metrics Radar Chart for {dataset}")
+        plt.title(f"Normalized Average Metrics Radar Chart for {dataset}\n(metrics normalized to 0-100 for visibility)")
         plt.legend(loc='upper right', bbox_to_anchor=(1.1, 1.1))
+        os.makedirs(output_dir, exist_ok=True)
         plt.savefig(os.path.join(output_dir, f"{dataset}_radar_chart_metrics.png"))
         plt.close()
 
 if __name__ == "__main__":
-    #visualize_results_by_codec()
-    #visualize_results_by_level()
+    visualize_results_by_codec()
+    visualize_results_by_level()
     #visualize_results_by_video()
     
     #table_of_results_by_codec()
     #visualize_result_by_video_violin_plots()
-    visualize_results_multi_metric_radar()
+    #visualize_results_multi_metric_radar()
     pass

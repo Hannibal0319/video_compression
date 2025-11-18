@@ -94,7 +94,7 @@ def main():
     videos = [videos_UVG, videos_HEVC]
     in_dirs = [in_dir_UVG, in_dir_HEVC]
     datasets = ["UVG", "HEVC_CLASS_B"]
-    levels = [4, 8]
+    levels = [1.5, 2.5, 4, 8]
 
     for i in range(len(videos)):
         print(f"Transcoding {len(videos[i])} videos to {args.codecs} using {args.workers} workers...")
@@ -116,8 +116,8 @@ def main():
 def main_only_one():
     src = Path("videos/UVG/Beauty_1920x1080_120fps_420_8bit_YUV.y4m")
     dst_dir_stem = Path("compressed_videos/UVG")
-    codecs = ["h264", "hevc", "vp9"]
-    levels = [1, 2, 3]
+    codecs = ["hevc"]
+    levels = [1.5,2.5,4,8]
     for codec in codecs:
         for level in levels:
             meta, _ = transcode_one(src, dst_dir_stem / codec / str(level), codec, level=level)
@@ -127,5 +127,5 @@ def main_only_one():
     
 
 if __name__ == "__main__":
-    #main_only_one()
-    main()
+    main_only_one()
+    #main()
