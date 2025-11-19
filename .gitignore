@@ -43,6 +43,7 @@ MANIFEST
 *.tar.gz
 *.tar
 *.webm
+*.npy
 
 models/
 
