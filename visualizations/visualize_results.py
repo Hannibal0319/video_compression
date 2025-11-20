@@ -30,39 +30,59 @@ def visualize_results_by_codec(output_dir="visualizations"):
                 # average psnr, ssim, vmaf over videos plotted as line with respect to bpp 
                 metrics_for_codec[level] = {"psnr": [],
                     "ssim": [],
-                    "vmaf": []}
+                    "vmaf": [],
+                    "tpsnr": [],
+                    "tssim": []}
                 for video_name, video_data in video_results.items():
                     metrics_for_codec[level]["psnr"].append(video_data["psnr"])
                     metrics_for_codec[level]["ssim"].append(video_data["ssim"])
                     metrics_for_codec[level]["vmaf"].append(video_data["vmaf"])
+                    metrics_for_codec[level]["tpsnr"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
+                    metrics_for_codec[level]["tssim"].append(video_data["tssim"] if "tssim" in video_data else 0)
             # average over all videos for each level
             bpp = []
             psn = []
             ssim = []
             vmaf = []
+            tpsnr = []
+            tssim = []
             for level in levels:
                 avg_psnr = np.mean(metrics_for_codec[level]["psnr"])
                 avg_ssim = np.mean(metrics_for_codec[level]["ssim"])
                 avg_vmaf = np.mean(metrics_for_codec[level]["vmaf"])
+                avg_tpsnr = np.mean(metrics_for_codec[level]["tpsnr"])
+                avg_tssim = np.mean(metrics_for_codec[level]["tssim"])
                 bpp_value = 0.1 * level  # assuming bpp increases linearly with level for simplicity
                 bpp.append(bpp_value)
                 psn.append(avg_psnr)
                 ssim.append(avg_ssim)
                 vmaf.append(avg_vmaf)
+                tpsnr.append(avg_tpsnr)
+                tssim.append(avg_tssim)
 
-            plt.subplot(3, 1, 1)
+            plt.subplot(3, 2, 1)
             plt.plot(bpp, psn, marker='o', label=codec.upper())
             plt.ylabel("PSNR (dB)")
             plt.grid(True)
             plt.legend()
-            plt.subplot(3, 1, 2)
+            plt.subplot(3, 2, 2)
             plt.plot(bpp, ssim, marker='o', label=codec.upper())
             plt.ylabel("SSIM")
             plt.grid(True)
             plt.legend()
-            plt.subplot(3, 1, 3)
+            plt.subplot(3, 2, 3)
             plt.plot(bpp, vmaf, marker='o', label=codec.upper())
             plt.ylabel("VMAF")
+            plt.grid(True)
+            plt.legend()
+            plt.subplot(3, 2, 4)
+            plt.plot(bpp, tpsnr, marker='o', label=codec.upper())
+            plt.ylabel("tPSNR (dB)")
+            plt.grid(True)
+            plt.legend()
+            plt.subplot(3, 2, 5)
+            plt.plot(bpp, tssim, marker='o', label=codec.upper())
+            plt.ylabel("tSSIM")
             plt.grid(True)
             plt.legend()
         
@@ -85,41 +105,63 @@ def visualize_results_by_level(output_dir="visualizations"):
                 # average psnr, ssim, vmaf over videos plotted as line with respect to bpp 
                 metrics_for_level[codec] = {"psnr": [],
                     "ssim": [],
-                    "vmaf": []}
+                    "vmaf": [],
+                    "tpsnr": [],
+                    "tssim": []
+                    }
                 for video_name, video_data in video_results.items():
                     metrics_for_level[codec]["psnr"].append(video_data["psnr"])
                     metrics_for_level[codec]["ssim"].append(video_data["ssim"])
                     metrics_for_level[codec]["vmaf"].append(video_data["vmaf"])
+                    metrics_for_level[codec]["tpsnr"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
+                    metrics_for_level[codec]["tssim"].append(video_data["tssim"] if "tssim" in video_data else 0)
             # average over all videos for each codec
             codec_list = []
             psn = []
             ssim = []
             vmaf = []
+            tpsnr = []
+            tssim = []
             for codec in codecs:
                 avg_psnr = np.mean(metrics_for_level[codec]["psnr"])
                 avg_ssim = np.mean(metrics_for_level[codec]["ssim"])
                 avg_vmaf = np.mean(metrics_for_level[codec]["vmaf"])
+                avg_tpsnr = np.mean(metrics_for_level[codec]["tpsnr"])
+                avg_tssim = np.mean(metrics_for_level[codec]["tssim"])
                 codec_lower = codec.lower()
                 codec_list.append(codec_lower)
                 psn.append(avg_psnr)
                 ssim.append(avg_ssim)
                 vmaf.append(avg_vmaf)
+                tpsnr.append(avg_tpsnr)
+                tssim.append(avg_tssim)
 
-            plt.subplot(3, 1, 1)
+            plt.subplot(3, 2, 1)
             plt.plot(codec_list, psn, marker='o', label=f"Level {level}")
             plt.ylabel("PSNR (dB)")
             plt.grid(True)
             plt.legend()
-            plt.subplot(3, 1, 2)
+            plt.subplot(3, 2, 2)
             plt.plot(codec_list, ssim, marker='o', label=f"Level {level}")
             plt.ylabel("SSIM")
             plt.grid(True)
             plt.legend()
-            plt.subplot(3, 1, 3)
+            plt.subplot(3, 2, 3)
             plt.plot(codec_list, vmaf, marker='o', label=f"Level {level}")
             plt.ylabel("VMAF")
             plt.grid(True)
             plt.legend()
+            plt.subplot(3, 2, 4)
+            plt.plot(codec_list, tpsnr, marker='o', label=f"Level {level}")
+            plt.ylabel("tPSNR (dB)")
+            plt.grid(True)
+            plt.legend()
+            plt.subplot(3, 2, 5)
+            plt.plot(codec_list, tssim, marker='o', label=f"Level {level}")
+            plt.ylabel("tSSIM")
+            plt.grid(True)
+            plt.legend()
+
         
         plt.xlabel("Codecs")
         plt.savefig(os.path.join(output_dir, f"{dataset}_rd_curve_by_level.png"))
@@ -191,7 +233,9 @@ def table_of_results_by_codec():
                         "Level": level,
                         "PSNR": round(video_data["psnr"], 2),
                         "SSIM": round(video_data["ssim"], 4),
-                        "VMAF": round(video_data["vmaf"], 2)
+                        "VMAF": round(video_data["vmaf"], 2),
+                        "tPSNR": round(video_data["tpsnr"], 2) if "tpsnr" in video_data else None,
+                        "tSSIM": round(video_data["tssim"], 4) if "tssim" in video_data else None
                     })
         df = pd.DataFrame.from_records(records)
         # plot table using pandas as image
@@ -220,12 +264,14 @@ def visualize_result_by_video_violin_plots(output_dir="visualizations"):
                         "Video": video_name.split('_')[0],
                         "Codec": codec,
                         "Level": level,
-                        "PSNR": video_data["psnr"],
-                        "SSIM": video_data["ssim"],
-                        "VMAF": video_data["vmaf"]
+                        "PSNR": video_data["psnr"] if "psnr" in video_data else None,
+                        "SSIM": video_data["ssim"] if "ssim" in video_data else None,
+                        "VMAF": video_data["vmaf"] if "vmaf" in video_data else None,
+                        "tPSNR": video_data["tpsnr"] if "tpsnr" in video_data else None,
+                        "tSSIM": video_data["tssim"] if "tssim" in video_data else None
                     })
         
-        for metric in ["PSNR", "SSIM", "VMAF"]:
+        for metric in ["PSNR", "SSIM", "VMAF" , "tPSNR", "tSSIM"]:
             df = pd.DataFrame.from_records(records)
             plt.figure(figsize=(8, 4))
             plt.suptitle(f"Distribution of {metric} for {dataset}")
@@ -242,7 +288,7 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
     for dataset in datasets:
         results_summary = {}
         for codec in codecs:
-            results_summary[codec] = {"PSNR": [], "SSIM": [], "VMAF": []}
+            results_summary[codec] = {"PSNR": [], "SSIM": [], "VMAF": [], "tPSNR": [], "tSSIM": []}
             for level in levels:                
                 results_file = f"{dataset_2_files[dataset]}{codec}_level{level}.json"
                 with open(results_file, 'r') as f:
@@ -252,6 +298,8 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
                     results_summary[codec]["PSNR"].append(video_data["psnr"])
                     results_summary[codec]["SSIM"].append(video_data["ssim"])
                     results_summary[codec]["VMAF"].append(video_data["vmaf"])
+                    results_summary[codec]["tPSNR"].append(video_data["tpsnr"])
+                    results_summary[codec]["tSSIM"].append(video_data["tssim"])
         
         # Average metrics per codec (original values)
         avg_metrics = {}
@@ -259,14 +307,18 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
             avg_metrics[codec] = {
                 "PSNR": np.mean(metrics["PSNR"]),
                 "SSIM": np.mean(metrics["SSIM"]),
-                "VMAF": np.mean(metrics["VMAF"])
+                "VMAF": np.mean(metrics["VMAF"]),
+                "tPSNR": np.mean(metrics["tPSNR"]),
+                "tSSIM": np.mean(metrics["tSSIM"])
             }
         
         # Normalize each metric to a common 0-100 scale so SSIM is visible on the radar
         metric_ranges = {
             "PSNR": (0.0, 50.0),   # expected PSNR range
             "SSIM": (0.0, 1.0),    # SSIM range
-            "VMAF": (0.0, 100.0)   # VMAF range
+            "VMAF": (0.0, 100.0),   # VMAF range
+            "tPSNR": (0.0, 50.0),  # expected tPSNR range
+            "tSSIM": (0.0, 1.0)    # tSSIM range
         }
         def normalize_to_100(value, metric):
             lo, hi = metric_ranges[metric]
@@ -274,7 +326,7 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
                 return 0.0
             return 100.0 * (np.clip(value, lo, hi) - lo) / (hi - lo)
 
-        labels = ["PSNR", "SSIM", "VMAF"]
+        labels = ["PSNR", "SSIM", "VMAF", "tPSNR", "tSSIM"]
         num_vars = len(labels)
         angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
         angles += angles[:1]
