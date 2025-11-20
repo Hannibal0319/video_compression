@@ -26,10 +26,10 @@ def find_original_for_compressed(video_name):
     return base_name
 
 datasets = ["UVG","HEVC_CLASS_B"]
-codecs = ["h264","hevc","vp9"]
+codecs = ["h264"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["tssim","tpsnr"]
+compute_metrics =["ssim","psnr","vmaf"]
 
 for dataset in datasets:
     if not os.path.exists("results/eval_metrics_" + dataset.lower()):
@@ -39,6 +39,7 @@ for dataset in datasets:
         for level in levels:
             compressed_videos.extend([(video,codec,level) for video in os.listdir("compressed_videos/" + dataset + "/" + codec + "/" + level + "/")])
     compressed_videos = list(filter(lambda x: not x[0].endswith(".json"), compressed_videos))
+    print(f"Found compressed videos for dataset {dataset}: {len(compressed_videos)}")
     json_output = {}
 
     for tuple in compressed_videos:
@@ -65,9 +66,9 @@ for dataset in datasets:
         json_output[video] = {}
         if "psnr" in compute_metrics or "ssim" in compute_metrics or "vmaf" in compute_metrics:
             ffqm_metrics = list(filter(lambda x: x in ["psnr","ssim","vmaf"], compute_metrics))
+            print("Calculating ffqm metrics:", ffqm_metrics)
             metrics = ffqm.calculate(ffqm_metrics)
             print("Metrics:", metrics.keys())
-        
         if "psnr" in compute_metrics:
             print("PSNR")
             psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])

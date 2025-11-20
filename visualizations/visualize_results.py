@@ -17,7 +17,7 @@ dataset_2_files = {
 def visualize_results_by_codec(output_dir="visualizations"):
     
     for dataset in datasets:
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(12, 12))
         plt.suptitle(f"Rate-Distortion Curve for {dataset}")
 
         for codec in codecs:
@@ -34,9 +34,9 @@ def visualize_results_by_codec(output_dir="visualizations"):
                     "tpsnr": [],
                     "tssim": []}
                 for video_name, video_data in video_results.items():
-                    metrics_for_codec[level]["psnr"].append(video_data["psnr"])
-                    metrics_for_codec[level]["ssim"].append(video_data["ssim"])
-                    metrics_for_codec[level]["vmaf"].append(video_data["vmaf"])
+                    metrics_for_codec[level]["psnr"].append(video_data["psnr"] if "psnr" in video_data else 0)
+                    metrics_for_codec[level]["ssim"].append(video_data["ssim"] if "ssim" in video_data else 0)
+                    metrics_for_codec[level]["vmaf"].append(video_data["vmaf"] if "vmaf" in video_data else 0)
                     metrics_for_codec[level]["tpsnr"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
                     metrics_for_codec[level]["tssim"].append(video_data["tssim"] if "tssim" in video_data else 0)
             # average over all videos for each level
@@ -92,7 +92,7 @@ def visualize_results_by_codec(output_dir="visualizations"):
 
 def visualize_results_by_level(output_dir="visualizations"):
     for dataset in datasets:
-        plt.figure(figsize=(12, 10))
+        plt.figure(figsize=(12, 12))
         plt.suptitle(f"Rate-Distortion Curve for {dataset}")
 
         for level in levels:
@@ -110,9 +110,9 @@ def visualize_results_by_level(output_dir="visualizations"):
                     "tssim": []
                     }
                 for video_name, video_data in video_results.items():
-                    metrics_for_level[codec]["psnr"].append(video_data["psnr"])
-                    metrics_for_level[codec]["ssim"].append(video_data["ssim"])
-                    metrics_for_level[codec]["vmaf"].append(video_data["vmaf"])
+                    metrics_for_level[codec]["psnr"].append(video_data["psnr"] if "psnr" in video_data else 0)
+                    metrics_for_level[codec]["ssim"].append(video_data["ssim"] if "ssim" in video_data else 0)
+                    metrics_for_level[codec]["vmaf"].append(video_data["vmaf"] if "vmaf" in video_data else 0)
                     metrics_for_level[codec]["tpsnr"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
                     metrics_for_level[codec]["tssim"].append(video_data["tssim"] if "tssim" in video_data else 0)
             # average over all videos for each codec
