@@ -26,10 +26,10 @@ def find_original_for_compressed(video_name):
     return base_name
 
 datasets = ["UVG","HEVC_CLASS_B"]
-codecs = ["h264"]
+codecs = ["h264","hevc","vp9"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["ssim","psnr","vmaf"]
+compute_metrics =["fvd"]
 
 for dataset in datasets:
     if not os.path.exists("results/eval_metrics_" + dataset.lower()):

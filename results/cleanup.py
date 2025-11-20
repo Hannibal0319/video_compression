@@ -21,5 +21,5 @@ def cleanup_unwanted_entries():
                     print(f"Cleaned up {result_file}, kept {len(cleaned_data)}/{len(data)} entries.")
 
 if __name__ == "__main__":
-    #cleanup_unwanted_entries()
+    cleanup_unwanted_entries()
     pass
