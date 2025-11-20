@@ -331,7 +331,7 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
         angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
         angles += angles[:1]
 
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
 
         for codec, metrics in avg_metrics.items():
@@ -353,11 +353,11 @@ def visualize_results_multi_metric_radar(output_dir="visualizations"):
         plt.close()
 
 if __name__ == "__main__":
-    visualize_results_by_codec()
-    visualize_results_by_level()
+    #visualize_results_by_codec()
+    #visualize_results_by_level()
     #visualize_results_by_video()
     
     #table_of_results_by_codec()
     #visualize_result_by_video_violin_plots()
-    #visualize_results_multi_metric_radar()
+    visualize_results_multi_metric_radar()
     pass

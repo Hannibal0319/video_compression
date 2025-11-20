@@ -5,7 +5,7 @@ datasets = ["UVG","HEVC_CLASS_B"]
 codecs = ["h264","hevc","vp9"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-if __name__ == "__main__":
+def cleanup_unwanted_entries():
     for dataset in datasets:
         for codec in codecs:
             for level in levels:
@@ -19,3 +19,7 @@ if __name__ == "__main__":
                     with open(result_file, "w") as f:
                         json.dump(cleaned_data, f, indent=4)
                     print(f"Cleaned up {result_file}, kept {len(cleaned_data)}/{len(data)} entries.")
+
+if __name__ == "__main__":
+    #cleanup_unwanted_entries()
+    pass
