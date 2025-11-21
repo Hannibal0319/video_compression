@@ -1,5 +1,21 @@
 import cv2
 import numpy as np
+
+# Compatibility shim for packages (e.g. scikit-video) that still use deprecated
+# numpy aliases like np.float, np.int, etc. Restores safe aliases when missing.
+if not hasattr(np, "float"):
+    np.float = float
+if not hasattr(np, "int"):
+    np.int = int
+if not hasattr(np, "bool"):
+    np.bool = bool
+if not hasattr(np, "complex"):
+    np.complex = complex
+if not hasattr(np, "object"):
+    np.object = object
+if not hasattr(np, "str"):
+    np.str = str
+
 from skimage.metrics import structural_similarity as ssim
 #from pytorch_msssim import ms_ssim, MS_SSIM
 import torch
@@ -319,48 +335,195 @@ def tSSIM_by_paths(orig_video_path, comp_video_path, length=100, single_flow=Tru
     temporal_ssim, _ = compute_tSSIM_and_tPSNR(orig_frames, comp_frames, single_flow=single_flow)
     return temporal_ssim
 
-if __name__ == "__main__":
-    # Example usage
-    orig_video_path = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
-    comp_video_path = "compressed_videos\\UVG\\h264\\1\\Jockey_1920x1080_120fps_420_8bit_YUV_h264.mp4"
+def ST_RRED_by_paths(orig_video_path, comp_video_path):
+    print("Reading videos for ST-RRED computation...")
+    videodata_ref = []
+    videodata_dist = []
+    cap_ref = cv2.VideoCapture(orig_video_path)
+    cap_dist = cv2.VideoCapture(comp_video_path)
+    while True:
+        ret_ref, frame_ref = cap_ref.read()
+        ret_dist, frame_dist = cap_dist.read()
+        if not ret_ref or not ret_dist:
+            break
+        videodata_ref.append(frame_ref)
+        videodata_dist.append(frame_dist)
+    cap_ref.release()
+    cap_dist.release()
+    videodata_ref = np.array(videodata_ref)
+    videodata_dist = np.array(videodata_dist)
 
+    print("Computing ST-RRED...")
+    videodata_ref = np.squeeze(videodata_ref)
+    videodata_dist = np.squeeze(videodata_dist)
+    st_rred = compute_strred(videodata_ref, videodata_dist)
+    return st_rred
+
+def MS_SSIM_by_paths(orig_video_path, comp_video_path):
+    try:
+        videodata_ref = []
+        videodata_dist = []
+        cap_ref = cv2.VideoCapture(orig_video_path)
+        cap_dist = cv2.VideoCapture(comp_video_path)
+        while True:
+            ret_ref, frame_ref = cap_ref.read()
+            ret_dist, frame_dist = cap_dist.read()
+            if not ret_ref or not ret_dist:
+                break
+            videodata_ref.append(frame_ref)
+            videodata_dist.append(frame_dist)
+        cap_ref.release()
+        cap_dist.release()
+        videodata_ref = np.array(videodata_ref)
+        videodata_dist = np.array(videodata_dist)
+    except Exception as e:
+        print(f"Error reading videos for MS-SSIM: {e}")
+        return float('nan')
+    
+    ms_ssim_value = compute_ms_ssim(videodata_ref, videodata_dist)
+
+
+    return float(ms_ssim_value)
+
+def compute_ms_ssim(orig_frames, comp_frames):
+    pass  # Placeholder
+
+import pywt
+
+def compute_strred(orig_frames, comp_frames):
+    def spatial_entropy(frame):
+        coeffs = pywt.dwt2(frame, 'db1')
+        LH, HL, HH = coeffs[1]
+        entropy = np.mean(np.abs(LH)) + np.mean(np.abs(HL)) + np.mean(np.abs(HH))
+        return entropy
+    def temporal_entropy(frame1, frame2):
+        diff = np.abs(frame2.astype(float) - frame1.astype(float))
+        return np.mean(diff)
+    spatial_scores = []
+    temporal_scores = []
+    print("Calculating spatial and temporal entropies for ST-RRED...")
+    #compute spatial entropy for each frame with multiple threads
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
+        spatial_futures = {executor.submit(spatial_entropy, comp_frames[i]): i for i in range(len(comp_frames))}
+        for fut in concurrent.futures.as_completed(spatial_futures):
+            res = fut.result()
+            spatial_scores.append(res)
+    #compute temporal entropy for each consecutive frame pair with multiple threads
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
+        temporal_futures = {executor.submit(temporal_entropy, comp_frames[i-1], comp_frames[i]): i for i in range(1, len(comp_frames))}
+        for fut in concurrent.futures.as_completed(temporal_futures):
+            res = fut.result()
+            temporal_scores.append(res)
+    ST_RRED = np.mean(spatial_scores) + np.mean(temporal_scores)
+    return ST_RRED
+
+def csf_weight(frame):
+    return np.std(frame)  # perceptual contrast weight
+
+def movie_s(frame_ref, frame_dist):
+    # ensure single-channel float arrays for wavelet transform
+    if frame_ref.ndim == 3:
+        frame_ref_gray = cv2.cvtColor(frame_ref, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    else:
+        frame_ref_gray = frame_ref.astype(np.float32)
+    if frame_dist.ndim == 3:
+        frame_dist_gray = cv2.cvtColor(frame_dist, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    else:
+        frame_dist_gray = frame_dist.astype(np.float32)
+
+    coeffs_ref = pywt.dwt2(frame_ref_gray, 'db1')
+    coeffs_dist = pywt.dwt2(frame_dist_gray, 'db1')
+    LH_r, HL_r, HH_r = coeffs_ref[1]
+    LH_d, HL_d, HH_d = coeffs_dist[1]
+    return csf_weight(frame_ref_gray) * (
+        abs(np.mean(LH_r) - np.mean(LH_d)) +
+        abs(np.mean(HL_r) - np.mean(HL_d)) +
+        abs(np.mean(HH_r) - np.mean(HH_d))
+    )
+
+def movie_t(frame1_ref, frame2_ref, frame1_dist, frame2_dist):
+    # prepare single-channel float32 frames and ensure matching sizes
+    def prep(frame):
+        if frame.ndim == 3:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = frame
+        return gray.astype(np.float32)
+
+    f1r = prep(frame1_ref)
+    f2r = prep(frame2_ref)
+    f1d = prep(frame1_dist)
+    f2d = prep(frame2_dist)
+
+    # resize distorted frames to match reference sizes if needed
+    h, w = f1r.shape
+    if f2r.shape != (h, w):
+        f2r = cv2.resize(f2r, (w, h), interpolation=cv2.INTER_LINEAR)
+    if f1d.shape != (h, w):
+        f1d = cv2.resize(f1d, (w, h), interpolation=cv2.INTER_LINEAR)
+    if f2d.shape != (h, w):
+        f2d = cv2.resize(f2d, (w, h), interpolation=cv2.INTER_LINEAR)
+
+    flow_ref = cv2.calcOpticalFlowFarneback(f1r, f2r, None,
+                                            pyr_scale=0.5, levels=3, winsize=15,
+                                            iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+    flow_dist = cv2.calcOpticalFlowFarneback(f1d, f2d, None,
+                                             pyr_scale=0.5, levels=3, winsize=15,
+                                             iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+    return float(np.mean(np.abs(flow_ref - flow_dist)))
+
+def compute_movie_index(orig_frames, comp_frames):
+    spatial_scores = []
+    temporal_scores = []
+    print("Calculating movie index spatial scores...")
+    start_time = time.time()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
+        spatial_futures = {executor.submit(movie_s, orig_frames[i], comp_frames[i]): i for i in range(len(comp_frames))}
+        for fut in concurrent.futures.as_completed(spatial_futures):
+            res = fut.result()
+            spatial_scores.append(res)
+    end_time = time.time()
+    print(f"Spatial scores computed in {end_time - start_time:.2f} seconds")
+    start_time = time.time()
+    print("Calculating movie index temporal scores...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
+        temporal_futures = {executor.submit(movie_t, orig_frames[i-1], orig_frames[i],
+                                           comp_frames[i-1], comp_frames[i]): i for i in range(1, len(comp_frames))}
+        for fut in concurrent.futures.as_completed(temporal_futures):
+            res = fut.result()
+            temporal_scores.append(res)
+    end_time = time.time()
+    print(f"Temporal scores computed in {end_time - start_time:.2f} seconds")
+    movie_index = np.mean(spatial_scores) + np.mean(temporal_scores)
+    return movie_index
+
+def compute_movie_index_by_paths(orig_video_path, comp_video_path):
     orig_cap = cv2.VideoCapture(orig_video_path)
     comp_cap = cv2.VideoCapture(comp_video_path)
 
     orig_frames = []
     comp_frames = []
-    i=0
-    start_time = time.time()
     while True:
         ret_orig, frame_orig = orig_cap.read()
         ret_comp, frame_comp = comp_cap.read()
-        if not ret_orig or not ret_comp or i>=100:  # limit to first 100 frames for speed
-            end_time = time.time()
-            print(f"Finished reading frames in {end_time - start_time} seconds.")
+        if not ret_orig or not ret_comp:
             break
-            
         orig_frames.append(frame_orig)
         comp_frames.append(frame_comp)
-        i+=1
 
     orig_cap.release()
     comp_cap.release()
 
-    start_time = time.time()
-    print("Computing temporal SSIM and PSNR...")
-    temporal_ssim, temporal_psnr = compute_tSSIM_and_tPSNR(orig_frames, comp_frames)
-    end_time = time.time()
-    print(f"Computed temporal SSIM and PSNR in {end_time - start_time} seconds.")
-    #ms_ssim_value = MS_SSIM(np.array(orig_frames), np.array(comp_frames))
+    movie_index = compute_movie_index(orig_frames, comp_frames)
+    return movie_index
+    
 
-    print(f"Temporal PSNR: {temporal_psnr}")
-    print(f"Temporal SSIM: {temporal_ssim}")
-
+if __name__ == "__main__":
+    # Example usage
+    orig_video_path = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
+    comp_video_path = "compressed_videos\\UVG\\h264\\1\\Jockey_1920x1080_120fps_420_8bit_YUV_h264.mp4"
     start_time = time.time()
-    print("Computing temporal SSIM and PSNR with single_flow=True...")
-    temporal_ssim_sf, temporal_psnr_sf = compute_tSSIM_and_tPSNR(orig_frames, comp_frames, single_flow=True)
+    movie_val = compute_movie_index_by_paths(orig_video_path, comp_video_path)
     end_time = time.time()
-    print(f"Computed temporal SSIM and PSNR with single_flow=True in {end_time - start_time} seconds.")
-    print(f"Temporal PSNR (single_flow): {temporal_psnr_sf}")
-    print(f"Temporal SSIM (single_flow): {temporal_ssim_sf}")
-    #print(f"MS-SSIM: {ms_ssim_value}")
+    print(f"Movie Index: {movie_val}, computed in {end_time - start_time:.2f} seconds")

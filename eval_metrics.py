@@ -5,7 +5,10 @@ import argparse
 import warnings
 import json
 import fvd_metric.fvd as fvd
-from metrics_utils import compute_tSSIM_and_tPSNR_by_paths, tPSNR_by_paths, tSSIM_by_paths
+from metrics_utils import compute_tSSIM_and_tPSNR_by_paths, \
+                            tPSNR_by_paths, tSSIM_by_paths, \
+                            compute_movie_index_by_paths, \
+                            ST_RRED_by_paths
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -110,6 +113,17 @@ for dataset in datasets:
             temporal_psnr = tPSNR_by_paths(input_video, compressed_video)
             print(temporal_psnr)
             json_output[video]["tpsnr"] = temporal_psnr
+        if "movie_index" in compute_metrics:
+            print("Movie Index")
+            movie_index_value = compute_movie_index_by_paths(input_video, compressed_video)
+            print(movie_index_value)
+            json_output[video]["movie_index"] = movie_index_value
+        if "st_rred" in compute_metrics:
+            print("ST-RRED")
+            st_rred_value = ST_RRED_by_paths(input_video, compressed_video)
+            print(st_rred_value)
+            json_output[video]["st_rred"] = st_rred_value
+        
        
         print()
 

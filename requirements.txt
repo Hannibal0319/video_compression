@@ -11,3 +11,4 @@ torchvision
 tensorflow
 scikit-image
 matplotlib
+PyWavelets
