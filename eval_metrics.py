@@ -32,7 +32,7 @@ datasets = ["UVG","HEVC_CLASS_B"]
 codecs = ["h264","hevc","vp9"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["fvd"]
+compute_metrics =["psnr","ssim","vmaf","tssim","tpsnr"]
 
 for dataset in datasets:
     if not os.path.exists("results/eval_metrics_" + dataset.lower()):
@@ -60,69 +60,92 @@ for dataset in datasets:
             if video in existing_data and all(metric in existing_data[video] for metric in compute_metrics):
                 print(f"Metrics for {video} with codec {codec} at level {level} already computed, skipping.")
                 continue
+        else:
+            print(f"No existing metrics file for codec {codec} at level {level}, will create new.")
+            existing_data = {}
         
-        if "psnr" in compute_metrics or "ssim" in compute_metrics or "vmaf" in compute_metrics: 
+        if "psnr" in compute_metrics or "ssim" in compute_metrics or "vmaf" in compute_metrics and not all(metric in existing_data.get(video, {}) for metric in compute_metrics): 
             ffqm = FfmpegQualityMetrics(input_video, compressed_video,verbose=True,progress=True,threads=10)
         print("-"*40)
         print("Calculating metrics for", compressed_video)
+        
         print("-"*40)
         json_output[video] = {}
-        if "psnr" in compute_metrics or "ssim" in compute_metrics or "vmaf" in compute_metrics:
-            ffqm_metrics = list(filter(lambda x: x in ["psnr","ssim","vmaf"], compute_metrics))
+        ffqm_metrics = list(filter(lambda x: x in ["psnr","ssim","vmaf"], compute_metrics))
+
+        if ("psnr" in ffqm_metrics or "ssim" in ffqm_metrics or "vmaf" in ffqm_metrics) and not all(metric in existing_data.get(video, {}) for metric in ffqm_metrics):
             print("Calculating ffqm metrics:", ffqm_metrics)
             metrics = ffqm.calculate(ffqm_metrics)
             print("Metrics:", metrics.keys())
-        if "psnr" in compute_metrics:
+        else:
+            print("Skipping ffqm metrics calculation as all are already computed or not required.")
+        
+        if "psnr" in compute_metrics and "psnr" not in existing_data.get(video, {}):
             print("PSNR")
             psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])
             json_output[video]["psnr"] = psnr_avg
             print(psnr_avg)
+        else:
+            print("Skipping PSNR as already computed or not required.")
 
-        if "ssim" in compute_metrics:
+        if "ssim" in compute_metrics and "ssim" not in existing_data.get(video, {}):
             print("SSIM")
             ssim_avg = sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"])
             json_output[video]["ssim"] = ssim_avg
             print(ssim_avg)
-        
-        if "vmaf" in compute_metrics:
+        else:
+            print("Skipping SSIM as already computed or not required.")
+
+        if "vmaf" in compute_metrics and "vmaf" not in existing_data.get(video, {}):
             print("VMAF")
             vmaf_avg = sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"])
             json_output[video]["vmaf"] = vmaf_avg
             print(vmaf_avg)
+        else:
+            print("Skipping VMAF as already computed or not required.")
 
-        if "fvd" in compute_metrics:
+        if "fvd" in compute_metrics and "fvd" not in existing_data.get(video, {}):
             print("FVD")
             fvd_value = fvd.fvd_pipeline(input_video, compressed_video)
             print(fvd_value)
             json_output[video]["fvd"] = fvd_value
+        else:
+            print("Skipping FVD as already computed or not required.")
 
-        if "tssim" in compute_metrics and "tpsnr" in compute_metrics:
+        if "tssim" in compute_metrics and "tpsnr" in compute_metrics and not ("tssim" in existing_data.get(video, {}) and "tpsnr" in existing_data.get(video, {})):
             print("tSSIM and tPSNR")
             temporal_ssim, temporal_psnr = compute_tSSIM_and_tPSNR_by_paths(input_video, compressed_video)
             print("tSSIM:", temporal_ssim)
             print("tPSNR:", temporal_psnr)
             json_output[video]["tssim"] = temporal_ssim
             json_output[video]["tpsnr"] = temporal_psnr
-        elif "tssim" in compute_metrics:
+        elif "tssim" in compute_metrics and "tssim" not in existing_data.get(video, {}):
             print("tSSIM")
             temporal_ssim = tSSIM_by_paths(input_video, compressed_video)
             print(temporal_ssim)
             json_output[video]["tssim"] = temporal_ssim
-        elif "tpsnr" in compute_metrics:
+        elif "tpsnr" in compute_metrics and "tpsnr" not in existing_data.get(video, {}):
             print("tPSNR")
             temporal_psnr = tPSNR_by_paths(input_video, compressed_video)
             print(temporal_psnr)
             json_output[video]["tpsnr"] = temporal_psnr
-        if "movie_index" in compute_metrics:
+        
+
+        if "movie_index" in compute_metrics and "movie_index" not in existing_data.get(video, {}):
             print("Movie Index")
             movie_index_value = compute_movie_index_by_paths(input_video, compressed_video)
             print(movie_index_value)
             json_output[video]["movie_index"] = movie_index_value
-        if "st_rred" in compute_metrics:
+        else:
+            print("Skipping Movie Index as already computed or not required.")
+
+        if "st_rred" in compute_metrics and "st_rred" not in existing_data.get(video, {}):
             print("ST-RRED")
             st_rred_value = ST_RRED_by_paths(input_video, compressed_video)
             print(st_rred_value)
             json_output[video]["st_rred"] = st_rred_value
+        else:
+            print("Skipping ST-RRED as already computed or not required.")
         
        
         print()

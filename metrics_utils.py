@@ -17,11 +17,12 @@ if not hasattr(np, "str"):
     np.str = str
 
 from skimage.metrics import structural_similarity as ssim
-#from pytorch_msssim import ms_ssim, MS_SSIM
+from pytorch_msssim import ms_ssim, MS_SSIM
 import torch
 import time
 import concurrent.futures
 import os
+import pywt
 
 def compute_temporal_psnr(orig_frames, comp_frames):
     psnr_values = []
@@ -283,8 +284,8 @@ def compute_tSSIM_and_tPSNR_by_paths(orig_video_path, comp_video_path):
     temporal_ssim, temporal_psnr = compute_tSSIM_and_tPSNR(orig_frames, comp_frames)
     return temporal_ssim, temporal_psnr
 
-def MS_SSIM(orig_frames, comp_frames):
-    ms_ssim_module = MS_SSIM(data_range=len(orig_frames), size_average=True, channel=3)
+def compute_MS_SSIM(orig_frames, comp_frames):
+    ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=3)
     ms_ssim_value = ms_ssim_module(
         torch.from_numpy(orig_frames).permute(0, 3, 1, 2).float(),
         torch.from_numpy(comp_frames).permute(0, 3, 1, 2).float(),
@@ -381,14 +382,39 @@ def MS_SSIM_by_paths(orig_video_path, comp_video_path):
         return float('nan')
     
     ms_ssim_value = compute_ms_ssim(videodata_ref, videodata_dist)
-
-
     return float(ms_ssim_value)
 
 def compute_ms_ssim(orig_frames, comp_frames):
-    pass  # Placeholder
+    ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=3)
+    ms_ssim_value = ms_ssim_module(
+        torch.from_numpy(orig_frames).permute(0, 3, 1, 2).float(),
+        torch.from_numpy(comp_frames).permute(0, 3, 1, 2).float(),
+    )
+    return ms_ssim_value.item()
 
-import pywt
+def compute_ms_ssim_by_paths(orig_video_path, comp_video_path):
+    try:
+        videodata_ref = []
+        videodata_dist = []
+        cap_ref = cv2.VideoCapture(orig_video_path)
+        cap_dist = cv2.VideoCapture(comp_video_path)
+        while True:
+            ret_ref, frame_ref = cap_ref.read()
+            ret_dist, frame_dist = cap_dist.read()
+            if not ret_ref or not ret_dist:
+                break
+            videodata_ref.append(frame_ref)
+            videodata_dist.append(frame_dist)
+        cap_ref.release()
+        cap_dist.release()
+        videodata_ref = np.array(videodata_ref)
+        videodata_dist = np.array(videodata_dist)
+    except Exception as e:
+        print(f"Error reading videos for MS-SSIM: {e}")
+        return float('nan')
+    
+    ms_ssim_value = compute_ms_ssim(videodata_ref, videodata_dist)
+    return float(ms_ssim_value)
 
 def compute_strred(orig_frames, comp_frames):
     def spatial_entropy(frame):
@@ -524,6 +550,7 @@ if __name__ == "__main__":
     orig_video_path = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
     comp_video_path = "compressed_videos\\UVG\\h264\\1\\Jockey_1920x1080_120fps_420_8bit_YUV_h264.mp4"
     start_time = time.time()
-    movie_val = compute_movie_index_by_paths(orig_video_path, comp_video_path)
+    msssim = MS_SSIM_by_paths(orig_video_path, comp_video_path)
+    print(f"MS-SSIM: {msssim}")
     end_time = time.time()
-    print(f"Movie Index: {movie_val}, computed in {end_time - start_time:.2f} seconds")
+    print(f"MS-SSIM computed in {end_time - start_time:.2f} seconds")

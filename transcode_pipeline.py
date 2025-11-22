@@ -91,9 +91,9 @@ def main():
         sys.exit(2)
 
     tasks = []
-    videos = [videos_UVG, videos_HEVC]
-    in_dirs = [in_dir_UVG, in_dir_HEVC]
-    datasets = ["UVG", "HEVC_CLASS_B"]
+    videos = [videos_HEVC]
+    in_dirs = [in_dir_HEVC]
+    datasets = ["HEVC_CLASS_B"]
     levels = [1.5, 2.5, 4, 8]
 
     for i in range(len(videos)):
@@ -127,5 +127,5 @@ def main_only_one():
     
 
 if __name__ == "__main__":
-    main_only_one()
-    #main()
+    #main_only_one()
+    main()
