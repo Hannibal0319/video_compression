@@ -32,7 +32,7 @@ datasets = ["UVG","HEVC_CLASS_B"]
 codecs = ["h264","hevc","vp9"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["psnr","ssim","vmaf","tssim","tpsnr"]
+compute_metrics =["fvd"]
 
 for dataset in datasets:
     if not os.path.exists("results/eval_metrics_" + dataset.lower()):
