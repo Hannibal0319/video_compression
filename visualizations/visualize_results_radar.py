@@ -4,7 +4,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-datasets = ["UVG", "HEVC_CLASS_B"]
+datasets = ["HEVC_CLASS_B"]
 levels = [1,1.5,2,2.5,3,4,8]
 codecs = ["h264", "hevc", "vp9"]
 
@@ -106,12 +106,12 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
 
                 for video_name, video_data in video_results.items():
                     print(f"Processing {dataset} {codec} level {level} video {video_name}")
-                    results_summary[codec]["PSNR"].append(video_data["psnr"])
-                    results_summary[codec]["SSIM"].append(video_data["ssim"])
-                    results_summary[codec]["VMAF"].append(video_data["vmaf"])
-                    results_summary[codec]["tPSNR"].append(video_data["tpsnr"])
-                    results_summary[codec]["tSSIM"].append(video_data["tssim"])
-                    results_summary[codec]["FVD"].append(video_data["fvd"])
+                    results_summary[codec]["PSNR"].append(video_data["psnr"] if "psnr" in video_data else 0)
+                    results_summary[codec]["SSIM"].append(video_data["ssim"] if "ssim" in video_data else 0)
+                    results_summary[codec]["VMAF"].append(video_data["vmaf"] if "vmaf" in video_data else 0)
+                    results_summary[codec]["tPSNR"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
+                    results_summary[codec]["tSSIM"].append(video_data["tssim"] if "tssim" in video_data else 0)
+                    results_summary[codec]["FVD"].append(video_data["fvd"] if "fvd" in video_data else 0)
         
         # Average metrics per codec (original values)
         avg_metrics = {}
@@ -169,3 +169,8 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
         os.makedirs(output_dir, exist_ok=True)
         plt.savefig(os.path.join(output_dir, f"{dataset}_radar_chart_metrics.png"))
         plt.close()
+
+if __name__ == "__main__":
+    visualize_results_by_video_radar_plot()
+    visualize_results_multi_metric_radar_avg_of_videos()
+    pass

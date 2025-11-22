@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import seaborn as sns
 
-datasets = ["UVG"]
+datasets = ["HEVC_CLASS_B"]
 levels = [1,1.5, 2, 2.5, 3,4,8]
 codecs = ["h264", "hevc", "vp9"]
 

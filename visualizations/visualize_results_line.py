@@ -185,3 +185,8 @@ def visualize_results_by_level(output_dir="visualizations"):
         plt.xlabel("Codecs")
         plt.savefig(os.path.join(output_dir, f"{dataset}_rd_curve_by_level.png"))
         plt.close()
+
+if __name__ == "__main__":
+    visualize_results_by_codec()
+    visualize_results_by_level()
+    pass
