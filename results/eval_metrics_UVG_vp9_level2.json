@@ -54,19 +54,5 @@
         "tssim": 0.7731932513794492,
         "tpsnr": 27.9945069250957,
         "fvd": 310.86799259680015
-    },
-    "Beauty_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "Bosphorus_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "HoneyBee_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "Jockey_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "ReadySteadyGo_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "ShakeNDry_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "YachtRide_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "Beauty_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {},
-    "Bosphorus_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {},
-    "HoneyBee_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {},
-    "Jockey_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {},
-    "ReadySteadyGo_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {},
-    "ShakeNDry_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {},
-    "YachtRide_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {}
+    }
 }

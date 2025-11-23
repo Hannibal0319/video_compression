@@ -54,12 +54,5 @@
         "tssim": 0.8754745346235936,
         "tpsnr": 35.07734134718651,
         "fvd": 91.18522748678714
-    },
-    "Beauty_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "Bosphorus_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "HoneyBee_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "Jockey_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "ReadySteadyGo_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "ShakeNDry_1920x1080_120fps_420_8bit_YUV_h264.mp4": {},
-    "YachtRide_1920x1080_120fps_420_8bit_YUV_h264.mp4": {}
+    }
 }
