@@ -5,10 +5,12 @@ import argparse
 import warnings
 import json
 import fvd_metric.fvd as fvd
-from metrics_utils import compute_tSSIM_and_tPSNR_by_paths, \
-                            tPSNR_by_paths, tSSIM_by_paths, \
+from metrics_utils import \
+                            \
                             compute_movie_index_by_paths, \
                             ST_RRED_by_paths
+
+from metrics.TPSNR_and_TSSIM import compute_tSSIM_and_tPSNR_by_paths, tPSNR_by_paths, tSSIM_by_paths
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -32,7 +34,7 @@ datasets = ["UVG"]
 codecs = ["h264","hevc","vp9"]
 levels = ["1","1.5","2","2.5"]
 
-compute_metrics =["psnr","ssim","vmaf"]
+compute_metrics =["tpsnr","tssim"]
 
 force = True
 # is force is True we recompute all metrics even if they already exist

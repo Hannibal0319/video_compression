@@ -3,7 +3,7 @@ import numpy as np
 import concurrent.futures
 import os
 from skimage.metrics import structural_similarity as ssim
-
+from metrics.load_video_frames import load_video_frames
 
 _FLOW_PARAMS = dict(pyr_scale=0.5, levels=3, winsize=15,
                     iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
@@ -117,21 +117,16 @@ def compute_tSSIM_and_tPSNR(orig_frames, comp_frames, single_flow=False):
 
 
 def compute_tSSIM_and_tPSNR_by_paths(orig_video_path, comp_video_path):
-    orig_cap = cv2.VideoCapture(orig_video_path)
-    comp_cap = cv2.VideoCapture(comp_video_path)
-
-    orig_frames = []
-    comp_frames = []
-    while True:
-        ret_orig, frame_orig = orig_cap.read()
-        ret_comp, frame_comp = comp_cap.read()
-        if not ret_orig or not ret_comp:
-            break
-
-        orig_frames.append(frame_orig)
-        comp_frames.append(frame_comp)
-
-    orig_cap.release()
-    comp_cap.release()
-
+    orig_frames = load_video_frames(orig_video_path)
+    comp_frames = load_video_frames(comp_video_path)
     return compute_tSSIM_and_tPSNR(orig_frames, comp_frames)
+
+def tSSIM_by_paths(orig_video_path, comp_video_path):
+    orig_frames = load_video_frames(orig_video_path)
+    comp_frames = load_video_frames(comp_video_path)
+    return compute_temporal_SSIM(orig_frames, comp_frames)
+
+def tPSNR_by_paths(orig_video_path, comp_video_path):
+    orig_frames = load_video_frames(orig_video_path)
+    comp_frames = load_video_frames(comp_video_path)
+    return compute_temporal_psnr(orig_frames, comp_frames)
