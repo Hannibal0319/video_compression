@@ -54,26 +54,5 @@
         "tssim": 0.7731932513794492,
         "tpsnr": 27.9945069250957,
         "fvd": 310.86799259680015
-    },
-    "YachtRide_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {
-        "fvd": 162.5157158219472
-    },
-    "Beauty_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {
-        "fvd": 54.36473179495499
-    },
-    "Bosphorus_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {
-        "fvd": 34.448418482953
-    },
-    "HoneyBee_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {
-        "fvd": 14.717357182358228
-    },
-    "Jockey_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {
-        "fvd": 7.125070673011123
-    },
-    "ReadySteadyGo_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {
-        "fvd": 39.25587873880204
-    },
-    "ShakeNDry_1920x1080_120fps_420_8bit_YUV_hevc.mp4": {
-        "fvd": 76.25524562519058
     }
 }

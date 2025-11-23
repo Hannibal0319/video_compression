@@ -28,11 +28,14 @@ def find_original_for_compressed(video_name):
     base_name = "_".join(video_name.split("/")[-1].split("_")[:-1]) + ".y4m"
     return base_name
 
-datasets = ["UVG","HEVC_CLASS_B"]
+datasets = ["UVG"]
 codecs = ["h264","hevc","vp9"]
-levels = ["1","1.5","2","2.5","3","4","8"]
+levels = ["1","1.5","2","2.5"]
 
-compute_metrics =["fvd"]
+compute_metrics =["psnr","ssim","vmaf"]
+
+force = True
+# is force is True we recompute all metrics even if they already exist
 
 for dataset in datasets:
     if not os.path.exists("results/eval_metrics_" + dataset.lower()):
@@ -57,14 +60,14 @@ for dataset in datasets:
         if os.path.exists("results/eval_metrics_" + dataset + "_" + codec + "_level" + level + ".json"):
             with open("results/eval_metrics_" + dataset + "_" + codec + "_level" + level + ".json", "r") as f:
                 existing_data = json.load(f)
-            if video in existing_data and all(metric in existing_data[video] for metric in compute_metrics):
+            if video in existing_data and all(metric in existing_data[video] for metric in compute_metrics) and not force:
                 print(f"Metrics for {video} with codec {codec} at level {level} already computed, skipping.")
                 continue
         else:
             print(f"No existing metrics file for codec {codec} at level {level}, will create new.")
             existing_data = {}
         
-        if "psnr" in compute_metrics or "ssim" in compute_metrics or "vmaf" in compute_metrics and not all(metric in existing_data.get(video, {}) for metric in compute_metrics): 
+        if "psnr" in compute_metrics or "ssim" in compute_metrics or "vmaf" in compute_metrics and (not all(metric in existing_data.get(video, {}) for metric in compute_metrics) or force): 
             ffqm = FfmpegQualityMetrics(input_video, compressed_video,verbose=True,progress=True,threads=10)
         print("-"*40)
         print("Calculating metrics for", compressed_video)
@@ -73,14 +76,14 @@ for dataset in datasets:
         json_output[video] = {}
         ffqm_metrics = list(filter(lambda x: x in ["psnr","ssim","vmaf"], compute_metrics))
 
-        if ("psnr" in ffqm_metrics or "ssim" in ffqm_metrics or "vmaf" in ffqm_metrics) and not all(metric in existing_data.get(video, {}) for metric in ffqm_metrics):
+        if ("psnr" in ffqm_metrics or "ssim" in ffqm_metrics or "vmaf" in ffqm_metrics) and (not all(metric in existing_data.get(video, {}) for metric in ffqm_metrics) or force):
             print("Calculating ffqm metrics:", ffqm_metrics)
             metrics = ffqm.calculate(ffqm_metrics)
             print("Metrics:", metrics.keys())
         else:
             print("Skipping ffqm metrics calculation as all are already computed or not required.")
         
-        if "psnr" in compute_metrics and "psnr" not in existing_data.get(video, {}):
+        if "psnr" in compute_metrics and ("psnr" not in existing_data.get(video, {}) or force):
             print("PSNR")
             psnr_avg = sum([frame["psnr_avg"] for frame in metrics["psnr"]]) / len(metrics["psnr"])
             json_output[video]["psnr"] = psnr_avg
@@ -88,7 +91,7 @@ for dataset in datasets:
         else:
             print("Skipping PSNR as already computed or not required.")
 
-        if "ssim" in compute_metrics and "ssim" not in existing_data.get(video, {}):
+        if "ssim" in compute_metrics and ("ssim" not in existing_data.get(video, {}) or force):
             print("SSIM")
             ssim_avg = sum([frame["ssim_avg"] for frame in metrics["ssim"]]) / len(metrics["ssim"])
             json_output[video]["ssim"] = ssim_avg
@@ -96,7 +99,7 @@ for dataset in datasets:
         else:
             print("Skipping SSIM as already computed or not required.")
 
-        if "vmaf" in compute_metrics and "vmaf" not in existing_data.get(video, {}):
+        if "vmaf" in compute_metrics and ("vmaf" not in existing_data.get(video, {}) or force):
             print("VMAF")
             vmaf_avg = sum([frame["vmaf"] for frame in metrics["vmaf"]]) / len(metrics["vmaf"])
             json_output[video]["vmaf"] = vmaf_avg
