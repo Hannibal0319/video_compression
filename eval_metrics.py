@@ -28,13 +28,13 @@ def find_original_for_compressed(video_name):
     base_name = "_".join(video_name.split("/")[-1].split("_")[:-1]) + ".y4m"
     return base_name
 
-datasets = ["UVG"]
-codecs = ["vp9"]
-levels = ["2","2.5","3","4","8"]
+datasets = ["UVG","HEVC_CLASS_B"]
+codecs = ["vp9","h264","hevc"]
+levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["tpsnr","tssim","fvd"]
+compute_metrics =["st_rred","movie_index"]
 
-force = True
+force = False
 # is force is True we recompute all metrics even if they already exist
 
 for dataset in datasets:
