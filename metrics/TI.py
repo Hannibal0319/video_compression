@@ -27,18 +27,17 @@ def temporal_information(frames: np.ndarray) -> float:
     # Return the average TI over all frame differences
     return float(np.mean(ti_values)) if ti_values else 0.0
 
-def TI_by_paths(input_video_path: str, compressed_video_path: str) -> float:
+def TI_by_path(input_video_path: str) -> float:
     """
-    Compute the Temporal Information (TI) between an input video and its compressed version.
+    Compute the Temporal Information (TI) of an input video.
 
     Parameters:
     input_video_path (str): Path to the original input video file.
-    compressed_video_path (str): Path to the compressed video file.
 
     Returns:
-    float: The Temporal Information value of the compressed video.
+    float: The Temporal Information value of the input video.
     """
 
-    compressed_frames = load_video_frames(compressed_video_path)
-    ti_value = temporal_information(compressed_frames)
+    frames = load_video_frames(input_video_path)
+    ti_value = temporal_information(frames)
     return ti_value

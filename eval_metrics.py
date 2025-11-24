@@ -7,7 +7,11 @@ import json
 import fvd_metric.fvd as fvd
 from metrics_utils import compute_tSSIM_and_tPSNR_by_paths, tPSNR_by_paths, tSSIM_by_paths, \
                             compute_movie_index_by_paths, \
-                            ST_RRED_by_paths
+                            ST_RRED_by_paths \
+
+
+from metrics.TI import TI_by_path
+
 
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -32,7 +36,7 @@ datasets = ["UVG","HEVC_CLASS_B"]
 codecs = ["vp9","h264","hevc"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["st_rred","movie_index"]
+compute_metrics =["TI"]
 
 force = False
 # is force is True we recompute all metrics even if they already exist
@@ -171,3 +175,23 @@ for dataset in datasets:
             print("Creating new file results/eval_metrics_" + dataset + "_" + codec + "_level" + level + ".json.")
             with open("results/eval_metrics_" + dataset + "_" + codec + "_level" + level + ".json", "w") as f:
                 json.dump(json_output, f, indent=4)
+
+    if "TI" in compute_metrics:
+        print("Computing TI for dataset", dataset)
+        videos = os.listdir("videos/" + dataset + "/")
+        ti_results = {}
+        for video in videos:
+            if video.endswith(".y4m"):
+                input_video = "videos/" + dataset + "/" + video
+                print("Computing TI for video", video)
+                ti_value = TI_by_path(input_video)
+                ti_results[video] = ti_value
+                print(f"TI for {video}: {ti_value}")
+        
+        with open(f"results/eval_metrics_{dataset}_TI.json", "w") as f:
+            json.dump(ti_results, f, indent=4)
+
+
+    
+    
+    print(f"Finished processing dataset {dataset}.\n")
