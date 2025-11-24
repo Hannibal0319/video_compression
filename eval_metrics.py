@@ -29,8 +29,8 @@ def find_original_for_compressed(video_name):
     return base_name
 
 datasets = ["UVG"]
-codecs = ["h264","hevc","vp9"]
-levels = ["1","1.5","2","2.5","3","4","8"]
+codecs = ["vp9"]
+levels = ["2","2.5","3","4","8"]
 
 compute_metrics =["tpsnr","tssim","fvd"]
 
