@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import seaborn as sns
 
-datasets = ["HEVC_CLASS_B"]
+datasets = ["UVG","HEVC_CLASS_B"]
 levels = [1,1.5, 2, 2.5, 3,4,8]
 codecs = ["h264", "hevc", "vp9"]
 
@@ -37,10 +37,11 @@ def visualize_result_by_video_violin_plots(output_dir="visualizations/plots_by_m
                         "tPSNR": video_data["tpsnr"] if "tpsnr" in video_data else None,
                         "tSSIM": video_data["tssim"] if "tssim" in video_data else None,
                         "FVD": video_data["fvd"] if "fvd" in video_data else None,
-                        
+                        "Movie Index": video_data["movie_index"] if "movie_index" in video_data else None,
+                        "ST-RRED": video_data["st_rred"] if "st_rred" in video_data else None
                     })
         
-        for metric in ["PSNR", "SSIM", "VMAF" , "tPSNR", "tSSIM", "FVD"]:
+        for metric in ["PSNR", "SSIM", "VMAF" , "tPSNR", "tSSIM", "FVD", "Movie Index", "ST-RRED"]:
             df = pd.DataFrame.from_records(records)
             plt.figure(figsize=(8, 4))
             plt.suptitle(f"Distribution of {metric} for {dataset}")

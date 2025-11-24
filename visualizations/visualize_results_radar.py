@@ -4,7 +4,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-datasets = ["HEVC_CLASS_B"]
+datasets = ["UVG","HEVC_CLASS_B"]
 levels = [1,1.5,2,2.5,3,4,8]
 codecs = ["h264", "hevc", "vp9"]
 
@@ -26,7 +26,9 @@ def normalize_metric(value, metric):
         "vmaf": (0.0, 100.0),   # VMAF range
         "tpsnr": (0.0, 50.0),  # expected tPSNR range
         "tssim": (0.0, 1.0),    # tSSIM range
-        "fvd": (0.0, 1500.0)    # FVD range
+        "fvd": (0.0, 1500.0),    # FVD range
+        "movie_index": (0.0, 1.0),  # Movie Index range (example)
+        "st_rred": (0.0, 1.0)    # ST-RRED range (example)
     }
     lo, hi = metric_ranges[metric]
     if hi == lo:
@@ -60,6 +62,8 @@ def visualize_results_by_video_radar_plot(output_dir="visualizations/plots_by_vi
                         "tpsnr": normalize_metric(video_data["tpsnr"], "tpsnr") if "tpsnr" in video_data else 0,
                         "tssim": normalize_metric(video_data["tssim"], "tssim") if "tssim" in video_data else 0,
                         "fvd": normalize_metric(video_data["fvd"], "fvd") if "fvd" in video_data else 0,
+                        "movie_index": normalize_metric(video_data["movie_index"], "movie_index") if "movie_index" in video_data else 0,
+                        "st_rred": normalize_metric(video_data["st_rred"], "st_rred") if "st_rred" in video_data else 0,
                     }
                     #print(results_per_video[video_name][codec])
             
@@ -68,7 +72,7 @@ def visualize_results_by_video_radar_plot(output_dir="visualizations/plots_by_vi
                 plt.suptitle(f"Normalized Radar Plot for {video_name} at {level}kbpp")
                 ax = plt.subplot(111, polar=True)
                 for codec, values in results_per_video[video_name].items():
-                    labels = ["PSNR", "SSIM", "VMAF", "tPSNR", "tSSIM", "FVD"]
+                    labels = ["PSNR", "SSIM", "VMAF", "tPSNR", "tSSIM", "FVD", "Movie Index", "ST-RRED"]
                     num_vars = len(labels)
                     angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
                     angles += angles[:1]
@@ -78,7 +82,9 @@ def visualize_results_by_video_radar_plot(output_dir="visualizations/plots_by_vi
                         values["vmaf"],
                         values["tpsnr"],
                         values["tssim"],
-                        values["fvd"]
+                        values["fvd"],
+                        values["movie_index"],
+                        values["st_rred"]
                     ]
                     metric_values += metric_values[:1]
                     ax.plot(angles, metric_values, label=f"{codec.upper()}")
@@ -98,7 +104,7 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
     for dataset in datasets:
         results_summary = {}
         for codec in codecs:
-            results_summary[codec] = {"PSNR": [], "SSIM": [], "VMAF": [], "tPSNR": [], "tSSIM": [], "FVD": []}
+            results_summary[codec] = {"PSNR": [], "SSIM": [], "VMAF": [], "tPSNR": [], "tSSIM": [], "FVD": [], "Movie Index": [], "ST-RRED": []}
             for level in levels:                
                 results_file = f"{dataset_2_files[dataset]}{codec}_level{level}.json"
                 with open(results_file, 'r') as f:
@@ -112,7 +118,8 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
                     results_summary[codec]["tPSNR"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
                     results_summary[codec]["tSSIM"].append(video_data["tssim"] if "tssim" in video_data else 0)
                     results_summary[codec]["FVD"].append(video_data["fvd"] if "fvd" in video_data else 0)
-        
+                    results_summary[codec]["Movie Index"].append(video_data["movie_index"] if "movie_index" in video_data else 0)
+                    results_summary[codec]["ST-RRED"].append(video_data["st_rred"] if "st_rred" in video_data else 0)
         # Average metrics per codec (original values)
         avg_metrics = {}
         for codec, metrics in results_summary.items():
@@ -122,7 +129,9 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
                 "VMAF": np.mean(metrics["VMAF"]),
                 "tPSNR": np.mean(metrics["tPSNR"]),
                 "tSSIM": np.mean(metrics["tSSIM"]),
-                "FVD": np.mean(metrics["FVD"])
+                "FVD": np.mean(metrics["FVD"]),
+                "Movie Index": np.mean(metrics["Movie Index"]),
+                "ST-RRED": np.mean(metrics["ST-RRED"])
             }
         
         # Normalize each metric to a common 0-100 scale so SSIM is visible on the radar
@@ -132,7 +141,9 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
             "VMAF": (0.0, 100.0),   # VMAF range
             "tPSNR": (0.0, 50.0),  # expected tPSNR range
             "tSSIM": (0.0, 1.0),    # tSSIM range
-            "FVD": (0.0, 1500.0)    # FVD range
+            "FVD": (0.0, 1500.0),    # FVD range
+            "Movie Index": (0.0, 1.0),  # Movie Index range (example)
+            "ST-RRED": (0.0, 1.0)    # ST-RRED range (example)
         }
         def normalize_to_100(value, metric):
             lo, hi = metric_ranges[metric]
@@ -140,7 +151,7 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
                 return 0.0
             return 100.0 * (np.clip(value, lo, hi) - lo) / (hi - lo)
 
-        labels = ["PSNR", "SSIM", "VMAF", "tPSNR", "tSSIM", "FVD"]
+        labels = ["PSNR", "SSIM", "VMAF", "tPSNR", "tSSIM", "FVD", "Movie Index", "ST-RRED"]
         num_vars = len(labels)
         angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
         angles += angles[:1]

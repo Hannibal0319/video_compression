@@ -38,8 +38,7 @@ force = False
 # is force is True we recompute all metrics even if they already exist
 
 for dataset in datasets:
-    if not os.path.exists("results/eval_metrics_" + dataset.lower()):
-        os.makedirs("results/eval_metrics_" + dataset.lower())
+
     compressed_videos =[] 
     for codec in codecs:
         for level in levels:
