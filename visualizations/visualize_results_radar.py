@@ -31,9 +31,10 @@ def normalize_metric(value, metric):
         "st_rred": (0.0, 1.0)    # ST-RRED range (example)
     }
     lo, hi = metric_ranges[metric]
-    if hi == lo:
-        return 0.0
-    return 100.0 * (np.clip(value, lo, hi) - lo) / (hi - lo)
+    ret = 100.0 * (np.clip(value, lo, hi) - lo) / (hi - lo)
+    if metric in ["fvd"]:  # for metrics where lower is better
+        ret = 100.0 - ret
+    return ret
 
 def get_video_name_stem(video_filename):
     return "_".join(video_filename.split('_')[0:-1])
@@ -133,23 +134,8 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
                 "Movie Index": np.mean(metrics["Movie Index"]),
                 "ST-RRED": np.mean(metrics["ST-RRED"])
             }
-        
-        # Normalize each metric to a common 0-100 scale so SSIM is visible on the radar
-        metric_ranges = {
-            "PSNR": (0.0, 50.0),   # expected PSNR range
-            "SSIM": (0.0, 1.0),    # SSIM range
-            "VMAF": (0.0, 100.0),   # VMAF range
-            "tPSNR": (0.0, 50.0),  # expected tPSNR range
-            "tSSIM": (0.0, 1.0),    # tSSIM range
-            "FVD": (0.0, 1500.0),    # FVD range
-            "Movie Index": (0.0, 1.0),  # Movie Index range (example)
-            "ST-RRED": (0.0, 1.0)    # ST-RRED range (example)
-        }
-        def normalize_to_100(value, metric):
-            lo, hi = metric_ranges[metric]
-            if hi == lo:
-                return 0.0
-            return 100.0 * (np.clip(value, lo, hi) - lo) / (hi - lo)
+
+
 
         labels = ["PSNR", "SSIM", "VMAF", "tPSNR", "tSSIM", "FVD", "Movie Index", "ST-RRED"]
         num_vars = len(labels)
@@ -161,13 +147,13 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
 
         for codec, metrics in avg_metrics.items():
             values_orig = [metrics[label] for label in labels]
-            values_norm = [normalize_to_100(v, label) for v, label in zip(values_orig, labels)]
+            values_norm = [normalize_metric(v, label.lower().replace(" ", "_").replace("-", "_")) for v, label in zip(values_orig, labels)]
             values_norm += values_norm[:1]
             print(f"Metrics for {codec} on {dataset}:")
             print(labels)
             print(f"{codec} average metrics: {values_orig}")
             print(f"{codec} normalized metrics: {values_norm}")
-            ax.plot(angles, values_norm, label=f"{codec.upper()} ({', '.join([f'{l}: {round(v,3)}' for l,v in zip(labels, values_orig)])})")
+            ax.plot(angles, values_norm, label=f"{codec.upper()}")
             ax.fill(angles, values_norm, alpha=0.25)
 
         # Show percentage ticks (normalized)
@@ -182,6 +168,6 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
         plt.close()
 
 if __name__ == "__main__":
-    visualize_results_by_video_radar_plot()
+    #visualize_results_by_video_radar_plot()
     visualize_results_multi_metric_radar_avg_of_videos()
     pass
