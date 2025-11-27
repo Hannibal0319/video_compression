@@ -7,7 +7,7 @@ import seaborn as sns
 
 datasets = ["UVG","HEVC_CLASS_B"]
 levels = [1,1.5, 2, 2.5, 3,4,8]
-codecs = ["h264", "hevc", "vp9"]
+codecs = ["h264", "hevc", "vp9","av1"]
 
 dataset_2_files = {
     "UVG": "results/eval_metrics_uvg_",

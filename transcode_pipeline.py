@@ -15,10 +15,10 @@ CODEC_PROFILES = {
         "ext": "webm",
         "args": '-c:v libvpx-vp9 -row-mt 1 -c:a libopus -b:a 128k'
     },
-#    "av1": {
-#        "ext": "mkv",
-#        "args": '-c:v libaom-av1 -preset 6 -c:a libopus -b:a 128k'
-#    },
+    "av1": {
+        "ext": "mkv",
+        "args": '-c:v libsvtav1 -probesize 50M -analyzeduration 100M -preset 4 -svtav1-params rc=1 -c:a libopus -b:a 128k'
+    },
 }
 
 def compression_level_params(level):
@@ -39,7 +39,7 @@ def transcode_one(src, dst_dir, codec, vmaf_ref=None,level=2):
     out_path = (dst_dir / (src.stem + f'_{codec}.' + prof["ext"])).absolute()
     os.makedirs(dst_dir, exist_ok=True)
     src_abs = src.absolute()
-    level_params = compression_level_params(level)
+    level_params = compression_level_params(level) if codec != "av1" else f"-b:v {level*1000}k"
     cmd = [
         "ffmpeg", "-hide_banner", "-y",
         "-i", str(src_abs),
@@ -70,7 +70,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--input_dir", help="Input directory containing YUV files",default="videos")
     ap.add_argument("--output_dir", help="Output directory for transcoded videos", default="compressed_videos")
-    ap.add_argument("--codecs","-c", nargs="+", default=["h264" ,"hevc","vp9"], choices=CODEC_PROFILES.keys())
+    ap.add_argument("--codecs","-c", nargs="+", default=["h264" ,"hevc","vp9","av1"], choices=CODEC_PROFILES.keys())
     ap.add_argument("--workers", type=int, default=os.cpu_count()-4 or 4)
     ap.add_argument("--vmaf", action="store_true", help="Compute VMAF vs original")
     args = ap.parse_args()
@@ -91,10 +91,10 @@ def main():
         sys.exit(2)
 
     tasks = []
-    videos = [videos_HEVC]
-    in_dirs = [in_dir_HEVC]
-    datasets = ["HEVC_CLASS_B"]
-    levels = [1.5, 2.5, 4, 8]
+    videos = [videos_UVG, videos_HEVC]
+    in_dirs = [in_dir_UVG, in_dir_HEVC]
+    datasets = ["UVG","HEVC_CLASS_B"]
+    levels = [1,1.5, 2,2.5,3, 4, 8]
 
     for i in range(len(videos)):
         print(f"Transcoding {len(videos[i])} videos to {args.codecs} using {args.workers} workers...")

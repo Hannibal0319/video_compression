@@ -33,10 +33,10 @@ def find_original_for_compressed(video_name):
     return base_name
 
 datasets = ["UVG","HEVC_CLASS_B"]
-codecs = ["vp9","h264","hevc"]
+codecs = ["av1"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["TI"]
+compute_metrics =["psnr","ssim","vmaf","fvd","tssim","tpsnr","movie_index","st_rred"]
 
 force = False
 # is force is True we recompute all metrics even if they already exist

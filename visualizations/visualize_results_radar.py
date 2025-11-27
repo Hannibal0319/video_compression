@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 datasets = ["UVG","HEVC_CLASS_B"]
 levels = [1,1.5,2,2.5,3,4,8]
-codecs = ["h264", "hevc", "vp9"]
+codecs = ["h264", "hevc", "vp9","av1"]
 
 dataset_2_files = {
     "UVG": "results/eval_metrics_uvg_",
@@ -154,7 +154,7 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
             print(f"{codec} average metrics: {values_orig}")
             print(f"{codec} normalized metrics: {values_norm}")
             ax.plot(angles, values_norm, label=f"{codec.upper()}")
-            ax.fill(angles, values_norm, alpha=0.25)
+            ax.fill(angles, values_norm, alpha=0.15)
 
         # Show percentage ticks (normalized)
         ax.set_yticks([0, 25, 50, 75, 100])
@@ -168,6 +168,6 @@ def visualize_results_multi_metric_radar_avg_of_videos(output_dir="visualization
         plt.close()
 
 if __name__ == "__main__":
-    #visualize_results_by_video_radar_plot()
+    visualize_results_by_video_radar_plot()
     visualize_results_multi_metric_radar_avg_of_videos()
     pass
