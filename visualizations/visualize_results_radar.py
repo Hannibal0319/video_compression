@@ -39,7 +39,7 @@ def normalize_metric(value, metric):
 def get_video_name_stem(video_filename):
     return "_".join(video_filename.split('_')[0:-1])
 
-def visualize_results_by_video_radar_plot(output_dir="visualizations/plots_by_video"):
+def visualize_results_by_video_radar_plot(output_dir="visualizations/plots_by_video_and_level"):
     for dataset in datasets:
 
         for level in levels:

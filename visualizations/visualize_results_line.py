@@ -348,10 +348,117 @@ def visalize_results_by_TI_group(output_dir="visualizations"):
 
         plt.xlabel("TI Groups")
         plt.savefig(os.path.join(output_dir, f"rd_curve_by_TI_group_for_{codec}.png"))
-        
+
+def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
+    for dataset in datasets:
+        plt.figure(figsize=(12, 12))
+        plt.suptitle(f"Rate-Distortion Curve for {dataset}")
+
+        metrics_for_video_by_level = {}
+        for codec in codecs:
+            for level in levels:
+                results_file = f"{dataset_2_files[dataset]}{codec}_level{level}.json"
+                with open(results_file, 'r') as f:
+                    video_results = json.load(f)
+
+                for video_name, video_data in video_results.items():
+                    #print(video_name)
+                    video_name = "_".join(video_name.split("_")[:-1])
+                    if video_name not in metrics_for_video_by_level:
+                        metrics_for_video_by_level[video_name] = {}
+                    
+                    if level not in metrics_for_video_by_level[video_name]:
+                        metrics_for_video_by_level[video_name][level] = {}
+                    
+                    if codec not in metrics_for_video_by_level[video_name][level]:
+                        metrics_for_video_by_level[video_name][level][codec] = {
+                            "psnr": [],
+                            "ssim": [],
+                            "vmaf": [],
+                            "tpsnr": [],
+                            "tssim": [],
+                            "fvd": [],
+                            "movie_index": [],
+                            "st_rred": []
+                        }
+                    metrics_for_video_by_level[video_name][level][codec]["psnr"].append(video_data["psnr"] if "psnr" in video_data else 0)
+                    metrics_for_video_by_level[video_name][level][codec]["ssim"].append(video_data["ssim"] if "ssim" in video_data else 0)
+                    metrics_for_video_by_level[video_name][level][codec]["vmaf"].append(video_data["vmaf"] if "vmaf" in video_data else 0)
+                    metrics_for_video_by_level[video_name][level][codec]["tpsnr"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
+                    metrics_for_video_by_level[video_name][level][codec]["tssim"].append(video_data["tssim"] if "tssim" in video_data else 0)
+                    metrics_for_video_by_level[video_name][level][codec]["fvd"].append(video_data["fvd"] if "fvd" in video_data else 0)
+                    metrics_for_video_by_level[video_name][level][codec]["movie_index"].append(video_data["movie_index"] if "movie_index" in video_data else 0)
+                    metrics_for_video_by_level[video_name][level][codec]["st_rred"].append(video_data["st_rred"] if "st_rred" in video_data else 0)
+        #print(list(metrics_for_video_by_level.values())[0].values())
+        for video_name, metrics_by_level_codec in metrics_for_video_by_level.items():
+            plt.figure(figsize=(12, 12))
+            plt.suptitle(f"Rate-Distortion Curve for {video_name} at Level {level} in {dataset}")
+
+            
+            print(f"Plotting RD curve for video: {video_name} in dataset: {dataset}")
+            print(metrics_by_level_codec)
+            for codec in codecs:
+                bpp = []
+                psn = []
+                ssim = []
+                vmaf = []
+                tpsnr = []
+                tssim = []
+                fvd = []
+                movie_index = []
+                st_rred = []
+                for level in levels:
+                    bpp.append(1000 * level)  # assuming bpp increases linearly with level for simplicity
+                    psn.append(metrics_by_level_codec[level][codec]["psnr"][0])
+                    ssim.append(metrics_by_level_codec[level][codec]["ssim"][0])
+                    vmaf.append(metrics_by_level_codec[level][codec]["vmaf"][0])
+                    tpsnr.append(metrics_by_level_codec[level][codec]["tpsnr"][0])
+                    tssim.append(metrics_by_level_codec[level][codec]["tssim"][0])
+                    fvd.append(metrics_by_level_codec[level][codec]["fvd"][0])
+                    movie_index.append(metrics_by_level_codec[level][codec]["movie_index"][0])
+                    st_rred.append(metrics_by_level_codec[level][codec]["st_rred"][0])
+
+                print(f"Codec: {codec}, BPP: {bpp}, PSNR: {psn}")
+                plt.subplot(4, 2, 1)
+                plt.plot(bpp, psn, marker='o',label=codec.upper())
+                plt.ylabel("PSNR (dB)")
+                plt.grid(True)
+                plt.subplot(4, 2, 2)
+                plt.plot(bpp, ssim, marker='o',label=codec.upper())
+                plt.ylabel("SSIM")
+                plt.grid(True)
+                plt.subplot(4, 2, 3)
+                plt.plot(bpp, vmaf, marker='o',label=codec.upper())
+                plt.ylabel("VMAF")
+                plt.grid(True)
+                plt.subplot(4, 2, 4)
+                plt.plot(bpp, tpsnr, marker='o',label=codec.upper())
+                plt.ylabel("tPSNR (dB)")
+                plt.grid(True)
+                plt.subplot(4, 2, 5)
+                plt.plot(bpp, tssim, marker='o',label=codec.upper())
+                plt.ylabel("tSSIM")
+                plt.grid(True)
+                plt.subplot(4, 2, 6)
+                plt.plot(bpp, fvd, marker='o',label=codec.upper())
+                plt.ylabel("FVD")
+                plt.grid(True)
+                plt.subplot(4, 2, 7)
+                plt.plot(bpp, movie_index, marker='o',label=codec.upper())
+                plt.ylabel("Movie Index")
+                plt.grid(True)
+                plt.subplot(4, 2, 8)
+                plt.plot(bpp, st_rred, marker='o',label=codec.upper())
+                plt.ylabel("ST-RRED")
+                plt.grid(True)
+                plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+            os.makedirs(f"{output_dir}/{dataset}", exist_ok=True)
+            plt.savefig(f"{output_dir}/{dataset}/{video_name}_rd_curve.png")
+            plt.close()
 
 if __name__ == "__main__":
-    visualize_results_by_codec()
-    visualize_results_by_level()
-    visalize_results_by_TI_group()
+    #visualize_results_by_codec()
+    #visualize_results_by_level()
+    #visalize_results_by_TI_group()
+    visualize_results_by_video()
     pass
