@@ -27,7 +27,7 @@ def normalize_metric(value, metric):
         "tpsnr": (0.0, 50.0),  # expected tPSNR range
         "tssim": (0.0, 1.0),    # tSSIM range
         "fvd": (0.0, 1500.0),    # FVD range
-        "movie_index": (0.0, 130.0),  # Movie Index range (example)
+        "movie_index": (0.0, 4.0),  # Movie Index range (example)
         "st_rred": (0.0, 30.0)    # ST-RRED range (example)
     }
     lo, hi = metric_ranges[metric]

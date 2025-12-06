@@ -417,31 +417,62 @@ def compute_ms_ssim_by_paths(orig_video_path, comp_video_path):
     return float(ms_ssim_value)
 
 def compute_strred(orig_frames, comp_frames):
-    def spatial_entropy(frame):
-        coeffs = pywt.dwt2(frame, 'db1')
-        LH, HL, HH = coeffs[1]
-        entropy = np.mean(np.abs(LH)) + np.mean(np.abs(HL)) + np.mean(np.abs(HH))
-        return entropy
-    def temporal_entropy(frame1, frame2):
-        diff = np.abs(frame2.astype(float) - frame1.astype(float))
-        return np.mean(diff)
-    spatial_scores = []
-    temporal_scores = []
-    print("Calculating spatial and temporal entropies for ST-RRED...")
-    #compute spatial entropy for each frame with multiple threads
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
-        spatial_futures = {executor.submit(spatial_entropy, comp_frames[i]): i for i in range(len(comp_frames))}
-        for fut in concurrent.futures.as_completed(spatial_futures):
-            res = fut.result()
-            spatial_scores.append(res)
-    #compute temporal entropy for each consecutive frame pair with multiple threads
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
-        temporal_futures = {executor.submit(temporal_entropy, comp_frames[i-1], comp_frames[i]): i for i in range(1, len(comp_frames))}
-        for fut in concurrent.futures.as_completed(temporal_futures):
-            res = fut.result()
-            temporal_scores.append(res)
-    ST_RRED = np.mean(spatial_scores) + np.mean(temporal_scores)
-    return ST_RRED
+    def calculate_st_entropy(frames):
+        """Helper to calculate ST entropy for a set of frames."""
+        def spatial_entropy(frame):
+            # Convert to grayscale if it's a color image
+            if frame.ndim == 3 and frame.shape[2] == 3:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            coeffs = pywt.dwt2(frame, 'db1')
+            LH, HL, HH = coeffs[1]
+            entropy = np.mean(np.abs(LH)) + np.mean(np.abs(HL)) + np.mean(np.abs(HH))
+            return entropy
+
+        def temporal_entropy(frame1, frame2):
+            # Convert to grayscale if it's a color image
+            if frame1.ndim == 3 and frame1.shape[2] == 3:
+                frame1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+            if frame2.ndim == 3 and frame2.shape[2] == 3:
+                frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+            diff = np.abs(frame2.astype(float) - frame1.astype(float))
+            return np.mean(diff)
+
+        spatial_scores = []
+        temporal_scores = []
+        num_frames = len(frames)
+        if num_frames == 0:
+            return 0
+
+        max_workers = os.cpu_count() - 4 or 4
+        
+        # Compute spatial entropy for each frame
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            spatial_futures = {executor.submit(spatial_entropy, frames[i]): i for i in range(num_frames)}
+            for fut in concurrent.futures.as_completed(spatial_futures):
+                spatial_scores.append(fut.result())
+
+        # Compute temporal entropy for each consecutive frame pair
+        if num_frames > 1:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                temporal_futures = {executor.submit(temporal_entropy, frames[i-1], frames[i]): i for i in range(1, num_frames)}
+                for fut in concurrent.futures.as_completed(temporal_futures):
+                    temporal_scores.append(fut.result())
+
+        mean_spatial = np.mean(spatial_scores) if spatial_scores else 0
+        mean_temporal = np.mean(temporal_scores) if temporal_scores else 0
+        
+        return mean_spatial + mean_temporal
+
+    print("Calculating ST-RRED for original video...")
+    st_rred_orig = calculate_st_entropy(orig_frames)
+    
+    print("Calculating ST-RRED for compressed video...")
+    st_rred_comp = calculate_st_entropy(comp_frames)
+
+    # The final metric is the difference between the two entropy scores
+    st_rred_diff = abs(st_rred_orig - st_rred_comp)
+    
+    return st_rred_diff
 
 def csf_weight(frame):
     return np.std(frame)  # perceptual contrast weight
@@ -501,27 +532,38 @@ def movie_t(frame1_ref, frame2_ref, frame1_dist, frame2_dist):
 def compute_movie_index(orig_frames, comp_frames):
     spatial_scores = []
     temporal_scores = []
+    num_frames = min(len(orig_frames), len(comp_frames))
+
+    if num_frames < 2:
+        return float('nan')
+
     print("Calculating movie index spatial scores...")
     start_time = time.time()
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
-        spatial_futures = {executor.submit(movie_s, orig_frames[i], comp_frames[i]): i for i in range(len(comp_frames))}
+    max_workers = os.cpu_count() - 4 or 4
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        spatial_futures = {executor.submit(movie_s, orig_frames[i], comp_frames[i]): i for i in range(num_frames)}
         for fut in concurrent.futures.as_completed(spatial_futures):
             res = fut.result()
             spatial_scores.append(res)
     end_time = time.time()
     print(f"Spatial scores computed in {end_time - start_time:.2f} seconds")
+    
     start_time = time.time()
     print("Calculating movie index temporal scores...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()-4 or 4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         temporal_futures = {executor.submit(movie_t, orig_frames[i-1], orig_frames[i],
-                                           comp_frames[i-1], comp_frames[i]): i for i in range(1, len(comp_frames))}
+                                           comp_frames[i-1], comp_frames[i]): i for i in range(1, num_frames)}
         for fut in concurrent.futures.as_completed(temporal_futures):
             res = fut.result()
             temporal_scores.append(res)
     end_time = time.time()
     print(f"Temporal scores computed in {end_time - start_time:.2f} seconds")
-    movie_index = np.mean(spatial_scores) + np.mean(temporal_scores)
+
+    mean_spatial = np.mean(spatial_scores) if spatial_scores else 0
+    mean_temporal = np.mean(temporal_scores) if temporal_scores else 0
+    
+    movie_index = mean_spatial + mean_temporal
     return movie_index
 
 def compute_movie_index_by_paths(orig_video_path, comp_video_path):
