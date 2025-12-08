@@ -32,7 +32,7 @@ def find_original_for_compressed(video_name):
     base_name = "_".join(video_name.split("\\")[-1].split("_")[:-1]) + ".y4m"
     return base_name
 
-datasets = ["HEVC_CLASS_B","UVG"]
+datasets = ["UVG"]
 codecs = ["av1"]
 levels = ["8"]
 
