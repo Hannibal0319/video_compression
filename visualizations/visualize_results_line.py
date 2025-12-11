@@ -226,7 +226,7 @@ def visualize_results_by_level(output_dir="visualizations"):
         plt.savefig(os.path.join(output_dir, f"{dataset}_rd_curve_by_level.png"))
         plt.close()
 
-def visalize_results_by_TI_group(output_dir="visualizations"):
+def visualize_results_by_TI_group(output_dir="visualizations"):
     TI_groups = get_TI_groups(datasets)
     
     
@@ -349,6 +349,147 @@ def visalize_results_by_TI_group(output_dir="visualizations"):
         plt.xlabel("TI Groups")
         plt.savefig(os.path.join(output_dir, f"rd_curve_by_TI_group_for_{codec}.png"))
 
+def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations", number_of_groups=4, fill_between=True):
+    TI_groups = get_TI_groups(datasets, number_of_groups=number_of_groups)
+    result_per_codec = {}
+    # Accumulate metrics for all videos in this codec across TI groups, datasets and levels
+    for codec in codecs:
+        plt.figure(figsize=(12, 12))
+        plt.suptitle(f"Rate-Distortion Curve by TI Groups for codec: {codec.upper()}")
+        metrics_for_group = {}
+        for group_id in TI_groups.keys():
+            metrics_for_group[group_id] = {}
+            for level in levels:
+                metrics_for_group[group_id][level] = {
+                    "psnr": [],
+                    "ssim": [],
+                    "vmaf": [],
+                    "tpsnr": [],
+                    "tssim": [],
+                    "fvd": [],
+                    "movie_index": [],
+                    "st_rred": []
+                }
+        for dataset in datasets:
+            for level in levels:                
+                results_file = f"{dataset_2_files[dataset]}{codec}_level{level}.json"
+                with open(results_file, 'r') as f:
+                    video_results = json.load(f)
+                for video_name, video_data in video_results.items():
+                    for group_id, videos in TI_groups.items():
+
+                        videos_by_first_word = [v[0].split("_")[0] for v in videos]
+                        if video_name.split("_")[0] in videos_by_first_word:
+                            metrics_for_group[group_id][level]["psnr"].append(video_data["psnr"] if "psnr" in video_data else 0)
+                            metrics_for_group[group_id][level]["ssim"].append(video_data["ssim"] if "ssim" in video_data else 0)
+                            metrics_for_group[group_id][level]["vmaf"].append(video_data["vmaf"] if "vmaf" in video_data else 0)
+                            metrics_for_group[group_id][level]["tpsnr"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
+                            metrics_for_group[group_id][level]["tssim"].append(video_data["tssim"] if "tssim" in video_data else 0)
+                            metrics_for_group[group_id][level]["fvd"].append(video_data["fvd"] if "fvd" in video_data else 0)
+                            metrics_for_group[group_id][level]["movie_index"].append(video_data["movie_index"] if "movie_index" in video_data else 0)
+                            metrics_for_group[group_id][level]["st_rred"].append(video_data["st_rred"] if "st_rred" in video_data else 0)
+                            metrics_for_group[group_id][level]["bpp"] = 1000 * level  # assuming bpp increases linearly with level for simplicity
+        groups_ids = list(TI_groups.keys())
+        bpp = [metrics_for_group[groups_ids[0]][level]["bpp"] for level in levels]
+
+        psn = []
+        ssim = []
+        vmaf = []
+        tpsnr = []
+        tssim = []
+        fvd = []
+        movie_index = []
+        st_rred = []
+        for group_id in groups_ids:
+            psn = []
+            ssim = []
+            vmaf = []
+            tpsnr = []
+            tssim = []
+            fvd = []
+            movie_index = []
+        st_rred = []
+        result_per_codec[codec] = {}
+        for group_id in groups_ids:
+            psn = []
+            ssim = []
+            vmaf = []
+            tpsnr = []
+            tssim = []
+            fvd = []
+            movie_index = []
+            st_rred = []
+            for level in levels:
+                avg_psnr = np.mean(metrics_for_group[group_id][level]["psnr"]) if len(metrics_for_group[group_id][level]["psnr"]) > 0 else 0
+                avg_ssim = np.mean(metrics_for_group[group_id][level]["ssim"]) if len(metrics_for_group[group_id][level]["ssim"]) > 0 else 0
+                avg_vmaf = np.mean(metrics_for_group[group_id][level]["vmaf"]) if len(metrics_for_group[group_id][level]["vmaf"]) > 0 else 0
+                avg_tpsnr = np.mean(metrics_for_group[group_id][level]["tpsnr"]) if len(metrics_for_group[group_id][level]["tpsnr"]) > 0 else 0
+                avg_tssim = np.mean(metrics_for_group[group_id][level]["tssim"]) if len(metrics_for_group[group_id][level]["tssim"]) > 0 else 0
+                avg_fvd = np.mean(metrics_for_group[group_id][level]["fvd"]) if len(metrics_for_group[group_id][level]["fvd"]) > 0 else 0
+                avg_movie_index = np.mean(metrics_for_group[group_id][level]["movie_index"]) if len(metrics_for_group[group_id][level]["movie_index"]) > 0 else 0
+                avg_st_rred = np.mean(metrics_for_group[group_id][level]["st_rred"]) if len(metrics_for_group[group_id][level]["st_rred"]) > 0 else 0
+                psn.append(avg_psnr)
+                ssim.append(avg_ssim)
+                vmaf.append(avg_vmaf)
+                tpsnr.append(avg_tpsnr)
+                tssim.append(avg_tssim)
+                fvd.append(avg_fvd)
+                movie_index.append(avg_movie_index)
+                st_rred.append(avg_st_rred)
+
+            result_per_codec[codec][group_id] = {
+                "psnr": psn,
+                "ssim": ssim,
+                "vmaf": vmaf,
+                "tpsnr": tpsnr,
+                "tssim": tssim,
+                "fvd": fvd,
+                "movie_index": movie_index,
+                "st_rred": st_rred
+            }
+        # Now plot deviation of codecs per TI group on a single figure
+    plt.figure(figsize=(16, 20))
+    plt.suptitle("Rate-Distortion Curve showing min/max range across Codecs for each TI Group")
+    bpp = [1000 * level for level in levels]
+    metrics = ["psnr", "ssim", "vmaf", "tpsnr", "tssim", "fvd", "movie_index", "st_rred"]
+    
+    # Define colors for different TI groups to make the plot readable
+    group_colors = plt.cm.get_cmap('tab10', len(TI_groups))
+    markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X', 'h', '<', '>','8']
+    line_styles = ['--', ':', '-.', '-', '--', ':', '-.', '-', '--', ':', '-.', '-']
+    for i, metric in enumerate(metrics):
+        ax = plt.subplot(4, 2, i + 1)
+        legend_handles = []
+        
+        for j, group_id in enumerate(TI_groups.keys()):
+            color = group_colors(j)
+            
+            # Collect metric values for all codecs for the current group and metric
+            all_codec_metrics = np.array([result_per_codec[codec][group_id][metric] for codec in codecs])
+            
+            # Find min and max across codecs for each bpp level
+            min_values = np.min(all_codec_metrics, axis=0)
+            max_values = np.max(all_codec_metrics, axis=0)
+
+            # Plot the min and max lines for the current group
+            ax.plot(bpp, min_values, marker=markers[j], linestyle=line_styles[j], color=color)
+            ax.plot(bpp, max_values, marker=markers[j], linestyle=line_styles[j], color=color)
+            
+            # Fill the area between min and max for the current group
+            if fill_between: ax.fill_between(bpp, min_values, max_values, alpha=0.4, color=color, label=f'TI Group {group_id} Range')
+
+            # Create a proxy artist for the legend
+            legend_handles.append(plt.Line2D([0], [0], marker=markers[j], color='w', label=f'TI Group {group_id} Range',
+                               markerfacecolor=color, markersize=10))
+        ax.set_ylabel(metric.upper())
+        ax.grid(True)
+        ax.legend(handles=legend_handles)
+    
+    plt.tight_layout(rect=[0, 0.03, 1, 0.97])
+    plt.savefig(os.path.join(output_dir, "rd_curve_range_all_TI_groups.png"))
+    plt.close()
+
+
 def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
     for dataset in datasets:
         plt.figure(figsize=(12, 12))
@@ -465,8 +606,9 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
             plt.close()
 
 if __name__ == "__main__":
-    visualize_results_by_codec()
-    visualize_results_by_level()
-    visalize_results_by_TI_group()
-    visualize_results_by_video()
+    #visualize_results_by_codec()
+    #visualize_results_by_level()
+    #visualize_results_by_TI_group()
+    #visualize_results_by_video()
+    visualize_results_by_TI_group_deviation_of_codecs(number_of_groups=4, fill_between=True)
     pass

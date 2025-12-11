@@ -1,6 +1,6 @@
 import json
 
-def get_TI_groups(datasets):
+def get_TI_groups(datasets,number_of_groups=4):
     all_ti_data = {}
     for dataset in datasets:
         with open(f"results/eval_metrics_{dataset}_TI.json", 'r') as f:
@@ -14,22 +14,25 @@ def get_TI_groups(datasets):
     ti_values = list(all_ti_data.values())
     ti_values.sort()
     n = len(ti_values)
+    # Determine group bounds so every group gets approx equal number of videos
     group_bounds = [
-        ti_values[n // 4],
-        ti_values[n // 2],
-        ti_values[3 * n // 4]
+        ti_values[min((i + 1) * n // number_of_groups - 1, n - 1)] for i in range(number_of_groups - 1)
     ]
-    ti_groups = {1: [], 2: [], 3: [], 4: []}
+    print(f"TI group bounds: {group_bounds}")
+    ti_groups = {i: [] for i in range(1, number_of_groups + 1)}
     for video_name, ti_value in all_ti_data.items():
-        if ti_value <= group_bounds[0]:
-            ti_groups[1].append((video_name, ti_value))
-        elif ti_value <= group_bounds[1]:
-            ti_groups[2].append((video_name, ti_value))
-        elif ti_value <= group_bounds[2]:
-            ti_groups[3].append((video_name, ti_value))
+        for i, bound in enumerate(group_bounds):
+            if ti_value <= bound:
+                ti_groups[i + 1].append((video_name, ti_value))
+                break
         else:
-            ti_groups[4].append((video_name, ti_value))
+            ti_groups[number_of_groups].append((video_name, ti_value))
     
+    print("TI Groups:")
+    for group_id, videos in ti_groups.items():
+        print(f"Group {group_id}:")
+        for video_name, ti_value in videos:
+            print(f"  {video_name}: TI={ti_value}")
     return ti_groups
 
 if __name__ == "__main__":
