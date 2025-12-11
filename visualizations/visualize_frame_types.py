@@ -123,7 +123,7 @@ def visualize_frame_type_distribution_by_TI_groups(output_dir='visualizations/fr
         print(f"Results directory not found: {results_dir}")
         return
 
-    TI_groups = get_TI_groups(datasets=datasets)
+    TI_groups = get_TI_groups(datasets=datasets,number_of_groups=6)
     print(f"Loaded TI groups for datasets: {list(TI_groups.keys())}")
     # output: [1, 2, 3, 4]
     print(f"Sample TI groups: {list(TI_groups.items())[:5]}")
@@ -225,9 +225,10 @@ def visualize_frame_type_distribution_by_TI_groups(output_dir='visualizations/fr
             plt.savefig(plot_file)
             plt.close()
     print("Visualization complete.")
-    #calculate group with most amount of I frames
-    ti_i_frame_stats = agg_df[['TI_group','I']].groupby('TI_group').mean().reset_index()
-    ti_i_frame_stats = ti_i_frame_stats.sort_values(by='I', ascending=False)
+    #calculate groups averages for I-frames by codec
+    ti_i_frame_stats = agg_df.groupby(['TI_group'])['I'].mean().reset_index()
+    ti_i_frame_stats = ti_i_frame_stats.sort_values(by='I').reset_index(drop=True)
+    
     print("TI Group I-frame averages:")
     print(ti_i_frame_stats)
     # visualize as bar chart
