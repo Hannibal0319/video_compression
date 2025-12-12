@@ -4,29 +4,12 @@ import json
 from pathlib import Path
 import subprocess
 import numpy as np
-import re
-import pandas as pd
+import bjontegaard as bd
 
 datasets = ["UVG", "HEVC_CLASS_B"]
 levels = [1, 1.5, 2, 2.5, 3, 4, 8]
 compute_metrics =["psnr","ssim","vmaf","fvd","tssim","tpsnr","movie_index","st_rred"]
 codecs = ["h264", "hevc", "av1", "vp9"]
-
-def run_command(cmd):
-    """Runs a command and returns its output."""
-    try:
-        process = subprocess.run(
-            cmd,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding='utf-8',
-            errors='replace'
-        )
-        return process.stdout
-    except subprocess.CalledProcessError as e:
-        return e.output
     
 def compute_bd_rate(rate1, metric1, rate2, metric2):
     """
@@ -35,41 +18,7 @@ def compute_bd_rate(rate1, metric1, rate2, metric2):
     rate2, metric2: Lists of rates and corresponding quality metrics for the second curve.
     Returns the BD-Rate percentage difference.
     """
-    # Convert to numpy arrays for easier manipulation
-    rate1 = np.array(rate1)
-    metric1 = np.array(metric1)
-    rate2 = np.array(rate2)
-    metric2 = np.array(metric2)
-
-    # Fit cubic polynomials to the log-rate vs metric data
-    p1 = np.polyfit(metric1, np.log(rate1), 3)
-    p2 = np.polyfit(metric2, np.log(rate2), 3)
-
-    # Define the integration limits
-    min_metric = max(min(metric1), min(metric2))
-    max_metric = min(max(metric1), max(metric2))
-
-    # Integrate the fitted polynomials over the common metric range
-    p_int1 = np.polyint(p1)
-    p_int2 = np.polyint(p2)
-
-    int1 = np.polyval(p_int1, max_metric) - np.polyval(p_int1, min_metric)
-    int2 = np.polyval(p_int2, max_metric) - np.polyval(p_int2, min_metric)
-
-    # Compute the average difference in log-rate
-    # Handle case where max_metric is very close to min_metric
-    if np.isclose(max_metric, min_metric):
-        avg_diff = 0
-    else:
-        avg_diff = (int2 - int1) / (max_metric - min_metric)
-
-    # Handle potential overflow
-    if avg_diff > 700:  # np.exp(709) is near max float64, 700 is a safe cap
-        return 1000000000.0  # Return a large number to indicate overflow
-
-    # Convert back from log-rate to percentage
-    bd_rate = (np.exp(avg_diff) - 1) * 100
-
+    bd_rate = bd.bd_rate(rate1, metric1, rate2, metric2,method='akima',min_overlap=0)
     return bd_rate
     
 def load_rate_distortion_data(json_path):
@@ -110,7 +59,15 @@ def process_bd_scores(input_dir, output_dir="results/bd_scores",reference_codec=
                             all_data[dataset][codec][video][metric] = []
                     all_data[dataset][codec][video]['rates'].append(level * 1000)
                     for metric in compute_metrics:
+                        if metric in ["fvd", "movie_index","st_rred"]:
+                            # For these metrics, lower is better, so we invert them for BD-rate calculation
+                            metrics[metric] = -metrics[metric]
+                        else:
+                            metrics[metric] = metrics[metric]
                         all_data[dataset][codec][video][metric].append(metrics[metric])
+    
+    print("Data loaded. Computing BD scores...")
+    #print("data with only strred:", {ds: {c: {v: d[c][v]['st_rred'] for v in d[c]} for c in d} for ds, d in all_data.items()})
     # Compute BD scores
     bd_scores = {}
     for dataset in all_data:
@@ -145,7 +102,24 @@ def process_bd_scores(input_dir, output_dir="results/bd_scores",reference_codec=
                 for metric in compute_metrics:
                     codec_metrics = np.array(video_data[metric])[codec_sort_indices]
                     ref_metrics = np.array(ref_video_data[metric])[ref_sort_indices]
+
+                    # Skip if there are NaN values, which can cause errors.
+                    if np.isnan(codec_metrics).any() or np.isnan(ref_metrics).any():
+                        print(f"Skipping BD-rate for {dataset}/{codec}/{video}/{metric} due to NaN values.")
+                        continue
                     
+                    # Enforce monotonicity: ensure that metric values are strictly increasing
+                    codec_metrics = np.maximum.accumulate(codec_metrics)
+                    ref_metrics = np.maximum.accumulate(ref_metrics)
+
+                    # Ensure the sequence is strictly increasing by adding a small epsilon to duplicates
+                    for i in range(1, len(codec_metrics)):
+                        if codec_metrics[i] <= codec_metrics[i-1]:
+                            codec_metrics[i] = codec_metrics[i-1] + 1e-9
+                    for i in range(1, len(ref_metrics)):
+                        if ref_metrics[i] <= ref_metrics[i-1]:
+                            ref_metrics[i] = ref_metrics[i-1] + 1e-9
+
                     try:
                         bd_rate_val = compute_bd_rate(sorted_ref_rates, ref_metrics, sorted_codec_rates, codec_metrics)
                         bd_scores[dataset][codec][video][metric] = bd_rate_val
