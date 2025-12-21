@@ -1,0 +1,7 @@
+{
+  "source": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\videos\\BVI-HD\\BVI-HD_CDVL_videos\\ORIG\\RockWave_1920x1080_30fps.mp4",
+  "output": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\compressed_videos\\BVI-HD\\vp9\\4\\RockWave_1920x1080_30fps_vp9.webm",
+  "codec": "vp9",
+  "ok": "",
+  "seconds": 0.040712594985961914
+}

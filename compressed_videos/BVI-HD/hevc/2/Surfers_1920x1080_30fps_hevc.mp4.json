@@ -1,0 +1,7 @@
+{
+  "source": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\videos\\BVI-HD\\BVI-HD_CDVL_videos\\ORIG\\Surfers_1920x1080_30fps.mp4",
+  "output": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\compressed_videos\\BVI-HD\\hevc\\2\\Surfers_1920x1080_30fps_hevc.mp4",
+  "codec": "hevc",
+  "ok": "",
+  "seconds": 0.03052520751953125
+}

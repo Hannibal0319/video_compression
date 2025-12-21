@@ -79,9 +79,11 @@ def main():
     
     in_dir_UVG = in_dir / "UVG"
     in_dir_HEVC = in_dir / "HEVC_CLASS_B"
+    in_dir_BVI_HD = in_dir / "BVI-HD" / "BVI-HD_CDVL_videos" / "ORIG"
     
     videos_UVG = [p for p in in_dir_UVG.rglob("*.y4m")]
     videos_HEVC = [p for p in in_dir_HEVC.rglob("*.y4m")]
+    videos_BVI_HD = [p for p in in_dir_BVI_HD.rglob("*.mp4")]
 
     if not videos_UVG:
         print("No input videos found.", file=sys.stderr)
@@ -89,11 +91,14 @@ def main():
     if not videos_HEVC:
         print("No input videos found.", file=sys.stderr)
         sys.exit(2)
+    if not videos_BVI_HD:
+        print("No input videos found.", file=sys.stderr)
+        sys.exit(2)
 
     tasks = []
-    videos = [videos_UVG, videos_HEVC]
-    in_dirs = [in_dir_UVG, in_dir_HEVC]
-    datasets = ["UVG","HEVC_CLASS_B"]
+    videos = [ videos_BVI_HD]
+    in_dirs = [ in_dir_BVI_HD]
+    datasets = ["BVI-HD"]
     levels = [1,1.5, 2,2.5,3, 4, 8]
 
     for i in range(len(videos)):

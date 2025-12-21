@@ -1,0 +1,7 @@
+{
+  "source": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\videos\\BVI-HD\\BVI-HD_CDVL_videos\\ORIG\\TreeTrunk_1920x1080_50fps.mp4",
+  "output": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\compressed_videos\\BVI-HD\\h264\\3\\TreeTrunk_1920x1080_50fps_h264.mp4",
+  "codec": "h264",
+  "ok": "",
+  "seconds": 0.027903318405151367
+}

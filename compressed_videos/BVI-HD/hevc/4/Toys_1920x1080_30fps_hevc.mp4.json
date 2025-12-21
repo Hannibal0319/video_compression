@@ -1,0 +1,7 @@
+{
+  "source": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\videos\\BVI-HD\\BVI-HD_CDVL_videos\\ORIG\\Toys_1920x1080_30fps.mp4",
+  "output": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\compressed_videos\\BVI-HD\\hevc\\4\\Toys_1920x1080_30fps_hevc.mp4",
+  "codec": "hevc",
+  "ok": "",
+  "seconds": 0.027395963668823242
+}

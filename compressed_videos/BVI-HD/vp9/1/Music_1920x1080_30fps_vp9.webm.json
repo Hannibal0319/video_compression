@@ -1,0 +1,8 @@
+{
+  "source": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\videos\\BVI-HD\\BVI-HD_CDVL_videos\\ORIG\\Music_1920x1080_30fps.mp4",
+  "output": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\compressed_videos\\BVI-HD\\vp9\\1\\Music_1920x1080_30fps_vp9.webm",
+  "codec": "vp9",
+  "ok": "Error opening input file C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\videos\\BVI-HD\\BVI-HD_CDVL_videos\\ORIG\\Music_1920x1080_30fps.mp4.\nExiting normally, received signal 2.\n",
+  "seconds": 0.1803114414215088,
+  "probe_out": {}
+}

@@ -1,0 +1,7 @@
+{
+  "source": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\videos\\BVI-HD\\BVI-HD_CDVL_videos\\ORIG\\SmokeGuns_1920x1080_60fps.mp4",
+  "output": "C:\\Users\\Peter\\Desktop\\stuff\\MIUN\\quantitative_research\\video_compression\\compressed_videos\\BVI-HD\\vp9\\4\\SmokeGuns_1920x1080_60fps_vp9.webm",
+  "codec": "vp9",
+  "ok": "",
+  "seconds": 1.1900782585144043
+}
