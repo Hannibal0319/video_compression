@@ -79,7 +79,7 @@ def main():
     
     in_dir_UVG = in_dir / "UVG"
     in_dir_HEVC = in_dir / "HEVC_CLASS_B"
-    in_dir_BVI_HD = in_dir / "BVI-HD" / "BVI-HD_CDVL_videos" / "ORIG"
+    in_dir_BVI_HD = in_dir / "BVI-HD"
     
     videos_UVG = [p for p in in_dir_UVG.rglob("*.y4m")]
     videos_HEVC = [p for p in in_dir_HEVC.rglob("*.y4m")]
