@@ -29,7 +29,7 @@ arg_parser.add_argument("--metrics", type=str, nargs="+", default=["psnr","ssim"
 args = arg_parser.parse_args()
 
 def find_original_for_compressed(video_name):
-    base_name = "_".join(video_name.split("\\")[-1].split("_")[:-1]) + ".y4m"
+    base_name = "_".join(video_name.split("\\")[-1].split("_")[:-1]) + ".mp4"
     return base_name
 
 datasets = ["BVI-HD"]
@@ -78,7 +78,7 @@ for dataset in datasets:
                     continue
                 
                 if "psnr" in compute_metrics or "ssim" in compute_metrics or "vmaf" in compute_metrics and (not all(metric in existing_data.get(video, {}) for metric in compute_metrics) or force): 
-                    ffqm = FfmpegQualityMetrics(input_video, compressed_video,verbose=True,progress=True,threads=10)
+                    ffqm = FfmpegQualityMetrics(input_video, compressed_video,verbose=True,progress=True,threads=os.cpu_count()-4 or 4)
                 print("-"*40)
                 print("Calculating metrics for", compressed_video)
                 
@@ -180,7 +180,7 @@ for dataset in datasets:
         videos = os.listdir("videos/" + dataset + "/")
         ti_results = {}
         for video in videos:
-            if video.endswith(".y4m"):
+            if video.endswith(".y4m") or video.endswith(".mp4"):
                 input_video = "videos/" + dataset + "/" + video
                 print("Computing TI for video", video)
                 ti_value = TI_by_path(input_video)

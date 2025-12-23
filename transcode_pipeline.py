@@ -119,10 +119,10 @@ def main():
                 print(json.dumps(meta, indent=2))
 
 def main_only_one():
-    src = Path("videos/UVG/Beauty_1920x1080_120fps_420_8bit_YUV.y4m")
-    dst_dir_stem = Path("compressed_videos/UVG")
-    codecs = ["vp9"]
-    levels = [1.5,2.5,4,8]
+    src = Path("videos/BVI-HD/RockWave_1920x1080_30fps.mp4")
+    dst_dir_stem = Path("compressed_videos/BVI-HD")
+    codecs = ["h264","hevc","vp9","av1"]
+    levels = [1,1.5,2,2.5]
     for codec in codecs:
         for level in levels:
             meta, _ = transcode_one(src, dst_dir_stem / codec / str(level), codec, level=level)
@@ -132,5 +132,5 @@ def main_only_one():
     
 
 if __name__ == "__main__":
-    #main_only_one()
-    main()
+    main_only_one()
+    #main()

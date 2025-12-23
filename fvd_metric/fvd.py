@@ -236,12 +236,19 @@ def fvd_pipeline(real_videos_path, generated_videos_path, local_i3d=True):
         def chunk_video(v):
             chunks = []
             num_frames = v.shape[1]
-            chunk_size = num_frames // 4
+            # Use ceiling so every chunk has the same length
+            chunk_size = int(np.ceil(num_frames / 4.0))
             for i in range(4):
                 start = i * chunk_size
-                end = (i + 1) * chunk_size if i < 3 else num_frames
-                chunks.append(v[:, start:end, :, :, :])
-            return tf.concat(chunks, axis=0)  # shape [4, T/4, H, W, C]
+                end = min((i + 1) * chunk_size, num_frames)
+                chunk = v[:, start:end, :, :, :]
+                # Pad shorter chunks by repeating the last frame
+                frames_in_chunk = end - start
+                if frames_in_chunk < chunk_size:
+                    pad_frames = tf.repeat(chunk[:, -1:, :, :, :], repeats=chunk_size - frames_in_chunk, axis=1)
+                    chunk = tf.concat([chunk, pad_frames], axis=1)
+                chunks.append(chunk)
+            return tf.concat(chunks, axis=0)  # shape [4, chunk_size, H, W, C]
         real_pre = chunk_video(real_pre)
         gen_pre = chunk_video(gen_pre)
     combined = tf.concat([real_pre, gen_pre], axis=0)  # shape [2, T, 224, 224, C]
