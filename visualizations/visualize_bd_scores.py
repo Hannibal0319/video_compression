@@ -14,7 +14,11 @@ files = [
     "bd_scores_UVG_av1.json",
     "bd_scores_UVG_vp9.json",
     "bd_scores_HEVC_CLASS_B_hevc.json",
-    "bd_scores_HEVC_CLASS_B_av1.json"
+    "bd_scores_HEVC_CLASS_B_av1.json",
+    "bd_scores_BVI-HD_h264.json",
+    "bd_scores_BVI-HD_hevc.json",
+    "bd_scores_BVI-HD_vp9.json",
+    "bd_scores_BVI-HD_av1.json"
 ]
 
 data_list = []

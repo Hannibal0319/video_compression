@@ -36,7 +36,7 @@ datasets = ["BVI-HD"]
 codecs = ["h264","hevc","vp9","av1"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["psnr","ssim","vmaf","fvd","tssim","tpsnr","movie_index","st_rred"]
+compute_metrics =["psnr","ssim","vmaf","fvd"] #"tssim","tpsnr","movie_index","st_rred"]
 
 force = False
 # is force is True we recompute all metrics even if they already exist
@@ -88,7 +88,7 @@ for dataset in datasets:
 
                 if ("psnr" in ffqm_metrics or "ssim" in ffqm_metrics or "vmaf" in ffqm_metrics) and (not all(metric in existing_data.get(video, {}) for metric in ffqm_metrics) or force):
                     print("Calculating ffqm metrics:", ffqm_metrics)
-                    metrics = ffqm.calculate(ffqm_metrics)
+                    metrics = ffqm.calculate(ffqm_metrics,vmaf_options={"n_threads":os.cpu_count()-4 or 4})
                     print("Metrics:", metrics.keys())
                 else:
                     print("Skipping ffqm metrics calculation as all are already computed or not required.")

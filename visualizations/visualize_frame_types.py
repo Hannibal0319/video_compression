@@ -6,7 +6,7 @@ from pathlib import Path
 from TI_groups import get_TI_groups
 
 
-datasets = ["UVG","HEVC_CLASS_B"]
+datasets = ["UVG","HEVC_CLASS_B","BVI-HD"]
 levels = [1,1.5, 2, 2.5, 3,4,8]
 codecs = ["h264", "hevc", "vp9","av1"]
 

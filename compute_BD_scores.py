@@ -6,7 +6,7 @@ import subprocess
 import numpy as np
 import bjontegaard as bd
 
-datasets = ["UVG", "HEVC_CLASS_B"]
+datasets = ["UVG", "HEVC_CLASS_B", "BVI-HD"]
 levels = [1, 1.5, 2, 2.5, 3, 4, 8]
 compute_metrics =["psnr","ssim","vmaf","fvd","tssim","tpsnr","movie_index","st_rred"]
 codecs = ["h264", "hevc", "av1", "vp9"]

@@ -36,7 +36,7 @@ def get_TI_groups(datasets,number_of_groups=4):
     return ti_groups
 
 if __name__ == "__main__":
-    datasets = ["UVG","HEVC_CLASS_B"]
+    datasets = ["UVG","HEVC_CLASS_B","BVI-HD"]
     ti_groups = get_TI_groups(datasets)
     for group_id, videos in ti_groups.items():
         print(f"TI Group {group_id}:")

@@ -5,13 +5,14 @@ import json
 import pandas as pd
 import seaborn as sns
 
-datasets = ["UVG","HEVC_CLASS_B"]
+datasets = ["UVG","HEVC_CLASS_B","BVI-HD"]
 levels = [1,1.5, 2, 2.5, 3,4,8]
 codecs = ["h264", "hevc", "vp9","av1"]
 
 dataset_2_files = {
     "UVG": "results/eval_metrics_uvg_",
-    "HEVC_CLASS_B": "results/eval_metrics_hevc_class_b_"
+    "HEVC_CLASS_B": "results/eval_metrics_hevc_class_b_",
+    "BVI-HD": "results/eval_metrics_BVI-HD_"
 }
 
 
