@@ -110,7 +110,7 @@ def visualize_frame_type_distribution(output_dir='visualizations/frame_type_dist
             plt.savefig(plot_file)
             plt.close()
 
-def visualize_frame_type_distribution_by_TI_groups(output_dir='visualizations/frame_type_distribution_by_TI'):
+def visualize_frame_type_distribution_by_TI_groups(output_dir='visualizations/frame_type_distribution_by_TI', number_of_groups=4):
     """
     Visualizes frame type distribution categorized by TI groups.
     """
@@ -123,7 +123,7 @@ def visualize_frame_type_distribution_by_TI_groups(output_dir='visualizations/fr
         print(f"Results directory not found: {results_dir}")
         return
 
-    TI_groups = get_TI_groups(datasets=datasets,number_of_groups=6)
+    TI_groups = get_TI_groups(datasets=datasets,number_of_groups=number_of_groups)
     print(f"Loaded TI groups for datasets: {list(TI_groups.keys())}")
     # output: [1, 2, 3, 4]
     print(f"Sample TI groups: {list(TI_groups.items())[:5]}")
@@ -246,6 +246,6 @@ def visualize_frame_type_distribution_by_TI_groups(output_dir='visualizations/fr
     plt.close()
     
 if __name__ == '__main__':
-    visualize_frame_type_distribution_by_TI_groups()
+    visualize_frame_type_distribution_by_TI_groups(number_of_groups=4)
     #visualize_frame_type_distribution()
     pass

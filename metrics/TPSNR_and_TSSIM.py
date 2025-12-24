@@ -2,15 +2,26 @@ import cv2
 import numpy as np
 import concurrent.futures
 import os
+import subprocess
+import tempfile
+from uuid import uuid4
 from skimage.metrics import structural_similarity as ssim
-from metrics.load_video_frames import load_video_frames
+from load_video_frames import load_video_frames
 
 _FLOW_PARAMS = dict(pyr_scale=0.5, levels=3, winsize=15,
                     iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+_NUL = "NUL" if os.name == "nt" else "/dev/null"
 
 
-def _to_gray_list(frames, num):
-    return [cv2.cvtColor(f, cv2.COLOR_BGR2GRAY).astype(np.float32) for f in frames[:num]]
+def _to_gray_list(frames, num, scale_factor=1.0, luma_only=True):
+    out = []
+    for f in frames[:num]:
+        if scale_factor != 1.0:
+            h, w = f.shape[:2]
+            f = cv2.resize(f, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_AREA)
+        gray = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY if luma_only else cv2.COLOR_BGR2GRAY).astype(np.float32)
+        out.append(gray)
+    return out
 
 
 def _calc_flow(prev, curr):
@@ -66,23 +77,24 @@ def _worker_pair(idx, orig_gray, comp_gray, grid_x, grid_y, w, h, single_flow):
     return float(ssim_val), float(psnr_val)
 
 
-def _run_pairs(orig_frames, comp_frames, single_flow=False):
+def _run_pairs(orig_frames, comp_frames, single_flow=False, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
     ssim_values = []
     psnr_values = []
     num_frames = min(len(orig_frames), len(comp_frames))
     if num_frames < 2:
         return ssim_values, psnr_values
 
-    orig_gray = _to_gray_list(orig_frames, num_frames)
-    comp_gray = _to_gray_list(comp_frames, num_frames)
+    orig_gray = _to_gray_list(orig_frames, num_frames, scale_factor, luma_only)
+    comp_gray = _to_gray_list(comp_frames, num_frames, scale_factor, luma_only)
 
     h, w = orig_gray[0].shape
     grid_x, grid_y = np.meshgrid(np.arange(w), np.arange(h))
 
-    indices = list(range(1, num_frames))
+    indices = list(range(1, num_frames, frame_step))
     cpu_count = os.cpu_count() or 4
     max_workers = min(len(indices), max(1, cpu_count))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+    Executor = concurrent.futures.ProcessPoolExecutor if use_process_pool else concurrent.futures.ThreadPoolExecutor
+    with Executor(max_workers=max_workers) as ex:
         futures = {ex.submit(_worker_pair, idx, orig_gray, comp_gray, grid_x, grid_y, w, h, single_flow): idx for idx in indices}
         for fut in concurrent.futures.as_completed(futures):
             res = fut.result()
@@ -95,38 +107,67 @@ def _run_pairs(orig_frames, comp_frames, single_flow=False):
     return ssim_values, psnr_values
 
 
-def compute_temporal_psnr(orig_frames, comp_frames):
-    ssim_vals, psnr_vals = _run_pairs(orig_frames, comp_frames, single_flow=False)
+def compute_temporal_psnr(orig_frames, comp_frames, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
+    ssim_vals, psnr_vals = _run_pairs(orig_frames, comp_frames, single_flow=False, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
     if len(psnr_vals) == 0:
         return float('nan')
     return float(np.mean(psnr_vals))
 
 
-def compute_temporal_SSIM(orig_frames, comp_frames):
-    ssim_vals, psnr_vals = _run_pairs(orig_frames, comp_frames, single_flow=False)
+
+def compute_temporal_SSIM(orig_frames, comp_frames, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
+    ssim_vals, psnr_vals = _run_pairs(orig_frames, comp_frames, single_flow=False, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
     if len(ssim_vals) == 0:
         return float('nan')
     return float(np.mean(ssim_vals))
 
 
-def compute_tSSIM_and_tPSNR(orig_frames, comp_frames, single_flow=False):
-    ssim_vals, psnr_vals = _run_pairs(orig_frames, comp_frames, single_flow=single_flow)
+def compute_tSSIM_and_tPSNR(orig_frames, comp_frames, single_flow=False, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
+    ssim_vals, psnr_vals = _run_pairs(orig_frames, comp_frames, single_flow=single_flow, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
     if len(ssim_vals) == 0 or len(psnr_vals) == 0:
         return float('nan'), float('nan')
     return float(np.mean(ssim_vals)), float(np.mean(psnr_vals))
 
 
-def compute_tSSIM_and_tPSNR_by_paths(orig_video_path, comp_video_path):
+def compute_tSSIM_and_tPSNR_by_paths(orig_video_path, comp_video_path, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
     orig_frames = load_video_frames(orig_video_path)
     comp_frames = load_video_frames(comp_video_path)
-    return compute_tSSIM_and_tPSNR(orig_frames, comp_frames)
+    return compute_tSSIM_and_tPSNR(orig_frames, comp_frames, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
 
-def tSSIM_by_paths(orig_video_path, comp_video_path):
+def tSSIM_by_paths(orig_video_path, comp_video_path, use_ffmpeg=True, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
+    if use_ffmpeg:
+        try:
+            threads = max(1, (os.cpu_count() or 1) - 1)
+            return compute_temporal_ssim_ffmpeg(orig_video_path, comp_video_path, max_frames=None, threads=threads, start_offset=None)
+        except Exception as e:
+            print(e)
+            pass
     orig_frames = load_video_frames(orig_video_path)
     comp_frames = load_video_frames(comp_video_path)
-    return compute_temporal_SSIM(orig_frames, comp_frames)
+    return compute_temporal_SSIM(orig_frames, comp_frames, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
 
-def tPSNR_by_paths(orig_video_path, comp_video_path):
+def tPSNR_by_paths(orig_video_path, comp_video_path, use_ffmpeg=True, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
+    if use_ffmpeg:
+        try:
+            threads = max(1, (os.cpu_count() or 1) - 1)
+            return compute_temporal_psnr_ffmpeg(orig_video_path, comp_video_path, max_frames=None, threads=threads, start_offset=None)
+        except Exception as e:
+            print(e)
+            pass
     orig_frames = load_video_frames(orig_video_path)
     comp_frames = load_video_frames(comp_video_path)
-    return compute_temporal_psnr(orig_frames, comp_frames)
+    return compute_temporal_psnr(orig_frames, comp_frames, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
+
+import time
+
+if __name__ == "__main__":
+    # Example usage
+    orig_path = "videos/UVG/Beauty_1920x1080_120fps_420_8bit_YUV.y4m"
+    comp_path = "compressed_videos/UVG/h264/1/Beauty_1920x1080_120fps_420_8bit_YUV_h264.mp4"
+    print("Computing tSSIM and tPSNR...")
+    start_time = time.time()
+    tpsnr, tssim = compute_tSSIM_and_tPSNR_by_paths(orig_path, comp_path, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=True)
+    end_time = time.time()
+    print(f"Computation time: {end_time - start_time:.2f} seconds")
+    print(f"tPSNR: {tpsnr}")
+    

@@ -4,9 +4,9 @@ import os
 import json
 from TI_groups import get_TI_groups
 
-datasets = [ "BVI-HD"]
+datasets = [ "BVI-HD", "HEVC_CLASS_B", "UVG"]
 levels = [1,1.5,2,2.5,3,4,8]
-codecs = ["h264", "hevc", "vp9"]
+codecs = ["h264", "hevc", "vp9", "av1"]
 
 dataset_2_files = {
     "UVG": "results/eval_metrics_uvg_",
@@ -609,7 +609,7 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
 if __name__ == "__main__":
     visualize_results_by_codec()
     visualize_results_by_level()
-    #visualize_results_by_TI_group()
+    visualize_results_by_TI_group()
     #visualize_results_by_video()
-    #visualize_results_by_TI_group_deviation_of_codecs(number_of_groups=4, fill_between=True)
+    visualize_results_by_TI_group_deviation_of_codecs(number_of_groups=4, fill_between=True)
     pass
