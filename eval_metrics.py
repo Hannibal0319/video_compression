@@ -36,7 +36,7 @@ datasets = ["BVI-HD"]
 codecs = ["h264","hevc","vp9","av1"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
-compute_metrics =["st_rred"]
+compute_metrics =["movie_index"]
 
 force = False
 # is force is True we recompute all metrics even if they already exist
