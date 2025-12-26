@@ -247,5 +247,5 @@ def visualize_frame_type_distribution_by_TI_groups(output_dir='visualizations/fr
     
 if __name__ == '__main__':
     visualize_frame_type_distribution_by_TI_groups(number_of_groups=4)
-    #visualize_frame_type_distribution()
+    visualize_frame_type_distribution()
     pass

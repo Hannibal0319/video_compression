@@ -33,7 +33,7 @@ def find_original_for_compressed(video_name):
     return base_name
 
 datasets = ["BVI-HD"]
-codecs = ["hevc","vp9","av1"]
+codecs = ["h264","hevc","vp9","av1"]
 levels = ["1","1.5","2","2.5","3","4","8"]
 
 compute_metrics =["st_rred"]

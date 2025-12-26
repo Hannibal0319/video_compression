@@ -8,7 +8,7 @@ import bjontegaard as bd
 
 datasets = ["UVG", "HEVC_CLASS_B", "BVI-HD"]
 levels = [1, 1.5, 2, 2.5, 3, 4, 8]
-compute_metrics =["psnr","ssim","vmaf","fvd"]
+compute_metrics =["psnr","ssim","vmaf","fvd","st_rred"]
 codecs = ["h264", "hevc", "av1", "vp9"]
     
 def compute_bd_rate(rate1, metric1, rate2, metric2):

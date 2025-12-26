@@ -1,0 +1,13 @@
+{
+    "total_frames": 250,
+    "frame_counts": {
+        "I": 1,
+        "B": 196,
+        "P": 53
+    },
+    "frame_percentages": {
+        "I": 0.4,
+        "B": 78.4,
+        "P": 21.2
+    }
+}
