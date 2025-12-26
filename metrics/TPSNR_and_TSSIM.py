@@ -128,46 +128,27 @@ def compute_tSSIM_and_tPSNR(orig_frames, comp_frames, single_flow=False, frame_s
         return float('nan'), float('nan')
     return float(np.mean(ssim_vals)), float(np.mean(psnr_vals))
 
+def tSSIM_by_paths(orig_video_path, comp_video_path, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
 
-def compute_tSSIM_and_tPSNR_by_paths(orig_video_path, comp_video_path, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
-    orig_frames = load_video_frames(orig_video_path)
-    comp_frames = load_video_frames(comp_video_path)
-    return compute_tSSIM_and_tPSNR(orig_frames, comp_frames, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
-
-def tSSIM_by_paths(orig_video_path, comp_video_path, use_ffmpeg=True, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
-    if use_ffmpeg:
-        try:
-            threads = max(1, (os.cpu_count() or 1) - 1)
-            return compute_temporal_ssim_ffmpeg(orig_video_path, comp_video_path, max_frames=None, threads=threads, start_offset=None)
-        except Exception as e:
-            print(e)
-            pass
     orig_frames = load_video_frames(orig_video_path)
     comp_frames = load_video_frames(comp_video_path)
     return compute_temporal_SSIM(orig_frames, comp_frames, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
 
-def tPSNR_by_paths(orig_video_path, comp_video_path, use_ffmpeg=True, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
-    if use_ffmpeg:
-        try:
-            threads = max(1, (os.cpu_count() or 1) - 1)
-            return compute_temporal_psnr_ffmpeg(orig_video_path, comp_video_path, max_frames=None, threads=threads, start_offset=None)
-        except Exception as e:
-            print(e)
-            pass
+def tPSNR_by_paths(orig_video_path, comp_video_path, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
+
     orig_frames = load_video_frames(orig_video_path)
     comp_frames = load_video_frames(comp_video_path)
     return compute_temporal_psnr(orig_frames, comp_frames, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)
 
 import time
 
-if __name__ == "__main__":
-    # Example usage
-    orig_path = "videos/UVG/Beauty_1920x1080_120fps_420_8bit_YUV.y4m"
-    comp_path = "compressed_videos/UVG/h264/1/Beauty_1920x1080_120fps_420_8bit_YUV_h264.mp4"
-    print("Computing tSSIM and tPSNR...")
+
+
+def compute_tSSIM_and_tPSNR_by_paths(orig_video_path, comp_video_path, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=False):
     start_time = time.time()
-    tpsnr, tssim = compute_tSSIM_and_tPSNR_by_paths(orig_path, comp_path, frame_step=1, scale_factor=1.0, luma_only=True, use_process_pool=True)
-    end_time = time.time()
-    print(f"Computation time: {end_time - start_time:.2f} seconds")
-    print(f"tPSNR: {tpsnr}")
-    
+    orig_frames = load_video_frames(orig_video_path)
+    print(f"Loaded original video frames in {time.time() - start_time:.2f} seconds")
+    start_time = time.time()
+    comp_frames = load_video_frames(comp_video_path)
+    print(f"Loaded compressed video frames in {time.time() - start_time:.2f} seconds")
+    return compute_tSSIM_and_tPSNR(orig_frames, comp_frames, frame_step=frame_step, scale_factor=scale_factor, luma_only=luma_only, use_process_pool=use_process_pool)

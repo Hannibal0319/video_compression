@@ -586,13 +586,48 @@ def compute_movie_index_by_paths(orig_video_path, comp_video_path):
     movie_index = compute_movie_index(orig_frames, comp_frames)
     return movie_index
     
+def load_video_frames(video_path):
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frames.append(frame)
+    cap.release()
+    return frames
+
+    
+#compute movie index strred tpsnr and tssim together
+def compute_all_metrics_by_paths(orig_video_path, comp_video_path):
+    start_time = time.time()
+    orig_video = load_video_frames(orig_video_path)
+    comp_video = load_video_frames(comp_video_path)
+    print(f"Loaded videos in {time.time() - start_time:.2f} seconds")
+    start_time = time.time()
+    st_rred = compute_strred(orig_video, comp_video)
+    print(f"Computed ST-RRED in {time.time() - start_time:.2f} seconds")
+    start_time = time.time()
+    temporal_ssim, temporal_psnr = compute_tSSIM_and_tPSNR(orig_video, comp_video)
+    print(f"Computed tSSIM and tPSNR in {time.time() - start_time:.2f} seconds")
+    start_time = time.time()
+    movie_index = compute_movie_index(orig_video, comp_video)
+    print(f"Computed Movie Index in {time.time() - start_time:.2f} seconds")
+    return {
+        "ST-RRED": st_rred,
+        "tSSIM": temporal_ssim,
+        "tPSNR": temporal_psnr,
+        "Movie Index": movie_index
+    }
 
 if __name__ == "__main__":
     # Example usage
     orig_video_path = "videos/UVG/Jockey_1920x1080_120fps_420_8bit_YUV.y4m"
-    comp_video_path = "compressed_videos\\UVG\\h264\\1\\Jockey_1920x1080_120fps_420_8bit_YUV_h264.mp4"
+    comp_video_path = "compressed_videos\\UVG\\h264\\8\\Jockey_1920x1080_120fps_420_8bit_YUV_h264.mp4"
     start_time = time.time()
-    msssim = MS_SSIM_by_paths(orig_video_path, comp_video_path)
-    print(f"MS-SSIM: {msssim}")
+    metrics = compute_all_metrics_by_paths(orig_video_path, comp_video_path)
     end_time = time.time()
-    print(f"MS-SSIM computed in {end_time - start_time:.2f} seconds")
+    print(f"Computed metrics in {end_time - start_time:.2f} seconds:")
+    print(f"That is this many minutes: {(end_time - start_time)/60:.2f}")
+    for metric_name, value in metrics.items():
+        print(f"{metric_name}: {value}")
