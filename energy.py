@@ -88,6 +88,67 @@ def compute_energy_for_dataset(datasets):
             json.dump(energies, f, indent=4)
     
 
+def load_TI_groups():
+    """Return TI group lookup per dataset using fixed TI thresholds."""
+    group_bounds = [11.495521545410156, 17.721065521240234, 29.252790451049805]
+    datasets = ["HEVC_CLASS_B", "UVG", "BVI-HD"]
+
+    ti_groups = {}
+    for dataset_name in datasets:
+        ti_path = os.path.join("results", f"eval_metrics_{dataset_name}_TI.json")
+        with open(ti_path, "r") as f:
+            ti_data = json.load(f)
+
+        video_groups = {}
+        for video_name, ti_value in ti_data.items():
+            if ti_value <= group_bounds[0]:
+                group = 1
+            elif ti_value <= group_bounds[1]:
+                group = 2
+            elif ti_value <= group_bounds[2]:
+                group = 3
+            else:
+                group = 4
+            video_groups[video_name] = group
+
+        ti_groups[dataset_name] = video_groups
+
+    return ti_groups
+
+def enery_by_TI_group():
+    datasets = ["HEVC_CLASS_B","UVG","BVI-HD"]
+    TI_groups = load_TI_groups()
+    for dataset_name in datasets:
+        with open(f"{dataset_name}_bending_energies.json", "r") as f:
+            energies = json.load(f)
+        TI_group_energies = {}
+        for video_path, energy in energies.items():
+            video_name = os.path.basename(video_path)
+            TI_group = TI_groups[dataset_name].get(video_name, "Unknown")
+            if TI_group not in TI_group_energies:
+                TI_group_energies[TI_group] = []
+            TI_group_energies[TI_group].append(energy)
+        avg_TI_group_energies = {group: np.mean(vals) for group, vals in TI_group_energies.items()}
+        with open(f"{dataset_name}_bending_energies_by_TI_group.json", "w") as f:
+            json.dump(avg_TI_group_energies, f, indent=4)
+    
+    #make avg across datasets
+    combined_TI_group_energies = {}
+    for dataset_name in datasets:
+        with open(f"{dataset_name}_bending_energies_by_TI_group.json", "r") as f:
+            dataset_TI_group_energies = json.load(f)
+        for group, energy in dataset_TI_group_energies.items():
+            if group not in combined_TI_group_energies:
+                combined_TI_group_energies[group] = []
+            combined_TI_group_energies[group].append(energy)
+    
+    avg_combined_TI_group_energies = {group: np.mean(vals) for group, vals in combined_TI_group_energies.items()}
+    print("Average Bending Energy by TI Group across Datasets sorted by energy:")
+    for group, energy in sorted(avg_combined_TI_group_energies.items(), key=lambda item: item[1]):
+        print(f"TI Group {group}: {energy}")
+    
+    print()
+
 if __name__ == "__main__":
-    datasets = ["HEVC_CLASS_B"]
-    compute_energy_for_dataset(datasets)
+    datasets = ["HEVC_CLASS_B","UVG","BVI-HD"]
+    enery_by_TI_group()
