@@ -84,7 +84,7 @@ def compute_energy_for_dataset(datasets):
             if filename.endswith(".mp4") or filename.endswith(".y4m"):
                 video_paths.append(os.path.join(dataset_path, filename))
         energies = compute_bending_energy_from_videos(video_paths)
-        with open(f"{dataset_name}_bending_energies.json", "w") as f:
+        with open(f"results/energy/{dataset_name}_bending_energies.json", "w") as f:
             json.dump(energies, f, indent=4)
     
 
@@ -119,7 +119,7 @@ def enery_by_TI_group():
     datasets = ["HEVC_CLASS_B","UVG","BVI-HD"]
     TI_groups = load_TI_groups()
     for dataset_name in datasets:
-        with open(f"{dataset_name}_bending_energies.json", "r") as f:
+        with open(f"results/energy/{dataset_name}_bending_energies.json", "r") as f:
             energies = json.load(f)
         TI_group_energies = {}
         for video_path, energy in energies.items():
@@ -129,7 +129,7 @@ def enery_by_TI_group():
                 TI_group_energies[TI_group] = []
             TI_group_energies[TI_group].append(energy)
         avg_TI_group_energies = {group: np.mean(vals) for group, vals in TI_group_energies.items()}
-        with open(f"{dataset_name}_bending_energies_by_TI_group.json", "w") as f:
+        with open(f"results/energy/{dataset_name}_bending_energies_by_TI_group.json", "w") as f:
             json.dump(avg_TI_group_energies, f, indent=4)
     
     #make avg across datasets
@@ -192,13 +192,13 @@ def compute_cosine_similarity_for_dataset(datasets):
             if filename.endswith(".mp4") or filename.endswith(".y4m"):
                 video_paths.append(os.path.join(dataset_path, filename))
         similarities = compute_cosine_similarities_from_videos(video_paths)
-        with open(f"{dataset_name}_cosine_similarities.json", "w") as f:
+        with open(f"results/smoothness_index/{dataset_name}_cosine_similarities.json", "w") as f:
             json.dump(similarities, f, indent=4)
 
 def cosine_per_TI_group(datasets):
     TI_groups = load_TI_groups()
     for dataset_name in datasets:
-        with open(f"{dataset_name}_cosine_similarities.json", "r") as f:
+        with open(f"results/smoothness_index/{dataset_name}_cosine_similarities.json", "r") as f:
             similarities = json.load(f)
         TI_group_similarities = {}
         for video_path, similarity in similarities.items():
@@ -208,13 +208,13 @@ def cosine_per_TI_group(datasets):
                 TI_group_similarities[TI_group] = []
             TI_group_similarities[TI_group].append(similarity)
         avg_TI_group_similarities = {group: np.mean(vals) for group, vals in TI_group_similarities.items()}
-        with open(f"{dataset_name}_cosine_similarities_by_TI_group.json", "w") as f:
+        with open(f"results/smoothness_index/{dataset_name}_cosine_similarities_by_TI_group.json", "w") as f:
             json.dump(avg_TI_group_similarities, f, indent=4)
     
     #make avg across datasets
     combined_TI_group_similarities = {}
     for dataset_name in datasets:
-        with open(f"{dataset_name}_cosine_similarities_by_TI_group.json", "r") as f:
+        with open(f"results/smoothness_index/{dataset_name}_cosine_similarities_by_TI_group.json", "r") as f:
             dataset_TI_group_similarities = json.load(f)
         for group, similarity in dataset_TI_group_similarities.items():
             if group not in combined_TI_group_similarities:
@@ -228,6 +228,80 @@ def cosine_per_TI_group(datasets):
     
     print()
 
+def SVD_entropy(curve):
+    """
+    Compute the SVD entropy of a curve.
+
+    Parameters:
+    curve (np.ndarray): An NxM array representing the curve points.
+
+    Returns:
+    float: The SVD entropy of the curve.
+    """
+    U, S, Vt = np.linalg.svd(curve - np.mean(curve, axis=0), full_matrices=False)
+    S_normalized = S / np.sum(S)
+    entropy = -np.sum(S_normalized * np.log(S_normalized + 1e-10))  # Adding small value for numerical stability
+    return entropy
+
+def compute_SVD_entropy_from_video(video_path):
+    curve = load_curve_from_video(video_path)
+    entropy = SVD_entropy(curve)
+    return entropy
+
+def compute_SVD_entropy_from_videos(video_paths):
+    entropies = {}
+    for video_path in video_paths:
+        print(f"Processing video for SVD entropy: {video_path}")
+        entropy = compute_SVD_entropy_from_video(video_path)
+        print(f"SVD Entropy for {video_path}: {entropy}")
+        entropies[video_path] = entropy
+    return entropies
+
+def compute_SVD_entropy_for_dataset(datasets):
+    for dataset_name in datasets:
+        video_paths = []
+        dataset_path = os.path.join("videos", dataset_name)
+        for filename in os.listdir(dataset_path):
+            if filename.endswith(".mp4") or filename.endswith(".y4m"):
+                video_paths.append(os.path.join(dataset_path, filename))
+        entropies = compute_SVD_entropy_from_videos(video_paths)
+        with open(f"results/SVD_entropy/{dataset_name}_SVD_entropies.json", "w") as f:
+            json.dump(entropies, f, indent=4)
+
+def SVD_entropy_per_TI_group(datasets):
+    TI_groups = load_TI_groups()
+    for dataset_name in datasets:
+        with open(f"results/SVD_entropy/{dataset_name}_SVD_entropies.json", "r") as f:
+            entropies = json.load(f)
+        TI_group_entropies = {}
+        for video_path, entropy in entropies.items():
+            video_name = os.path.basename(video_path)
+            TI_group = TI_groups[dataset_name].get(video_name, "Unknown")
+            if TI_group not in TI_group_entropies:
+                TI_group_entropies[TI_group] = []
+            TI_group_entropies[TI_group].append(entropy)
+        avg_TI_group_entropies = {group: np.mean(vals) for group, vals in TI_group_entropies.items()}
+        with open(f"{dataset_name}_SVD_entropies_by_TI_group.json", "w") as f:
+            json.dump(avg_TI_group_entropies, f, indent=4)
+    
+    #make avg across datasets
+    combined_TI_group_entropies = {}
+    for dataset_name in datasets:
+        with open(f"results/SVD_entropy/{dataset_name}_SVD_entropies_by_TI_group.json", "r") as f:
+            dataset_TI_group_entropies = json.load(f)
+        for group, entropy in dataset_TI_group_entropies.items():
+            if group not in combined_TI_group_entropies:
+                combined_TI_group_entropies[group] = []
+            combined_TI_group_entropies[group].append(entropy)
+    
+    avg_combined_TI_group_entropies = {group: np.mean(vals) for group, vals in combined_TI_group_entropies.items()}
+    print("Average SVD Entropy by TI Group across Datasets sorted by entropy:")
+    for group, entropy in sorted(avg_combined_TI_group_entropies.items(), key=lambda item: item[1]):
+        print(f"TI Group {group}: {entropy}")
+    
+    print()
+
 if __name__ == "__main__":
     datasets = ["HEVC_CLASS_B","UVG","BVI-HD"]
-    cosine_per_TI_group(datasets)
+    compute_SVD_entropy_for_dataset(datasets)
+    SVD_entropy_per_TI_group(datasets)
