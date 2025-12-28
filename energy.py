@@ -149,6 +149,85 @@ def enery_by_TI_group():
     
     print()
 
+def cosine_similarity(v1, v2):
+    dot_product = np.dot(v1, v2)
+    norm_v1 = np.linalg.norm(v1)
+    norm_v2 = np.linalg.norm(v2)
+    if norm_v1 == 0 or norm_v2 == 0:
+        return 0.0
+    return dot_product / (norm_v1 * norm_v2)
+
+def calculate_average_cosine_similarity(video_path):
+    curve = load_curve_from_video(video_path)
+    n_points = curve.shape[0]
+    if n_points < 2:
+        return 0.0  # Not enough points to compute cosine similarity
+
+    total_similarity = 0.0
+    count = 0
+    for i in range(n_points - 1):
+        v1 = curve[i]
+        v2 = curve[i + 1]
+        similarity = cosine_similarity(v1, v2)
+        total_similarity += similarity
+        count += 1
+
+    average_similarity = total_similarity / count if count > 0 else 0.0
+    return average_similarity
+
+def compute_cosine_similarities_from_videos(video_paths):
+    similarities = {}
+    for video_path in video_paths:
+        print(f"Processing video for cosine similarity: {video_path}")
+        similarity = calculate_average_cosine_similarity(video_path)
+        print(f"Average Cosine Similarity for {video_path}: {similarity}")
+        similarities[video_path] = similarity
+    return similarities
+
+def compute_cosine_similarity_for_dataset(datasets):
+    for dataset_name in datasets:
+        video_paths = []
+        dataset_path = os.path.join("videos", dataset_name)
+        for filename in os.listdir(dataset_path):
+            if filename.endswith(".mp4") or filename.endswith(".y4m"):
+                video_paths.append(os.path.join(dataset_path, filename))
+        similarities = compute_cosine_similarities_from_videos(video_paths)
+        with open(f"{dataset_name}_cosine_similarities.json", "w") as f:
+            json.dump(similarities, f, indent=4)
+
+def cosine_per_TI_group(datasets):
+    TI_groups = load_TI_groups()
+    for dataset_name in datasets:
+        with open(f"{dataset_name}_cosine_similarities.json", "r") as f:
+            similarities = json.load(f)
+        TI_group_similarities = {}
+        for video_path, similarity in similarities.items():
+            video_name = os.path.basename(video_path)
+            TI_group = TI_groups[dataset_name].get(video_name, "Unknown")
+            if TI_group not in TI_group_similarities:
+                TI_group_similarities[TI_group] = []
+            TI_group_similarities[TI_group].append(similarity)
+        avg_TI_group_similarities = {group: np.mean(vals) for group, vals in TI_group_similarities.items()}
+        with open(f"{dataset_name}_cosine_similarities_by_TI_group.json", "w") as f:
+            json.dump(avg_TI_group_similarities, f, indent=4)
+    
+    #make avg across datasets
+    combined_TI_group_similarities = {}
+    for dataset_name in datasets:
+        with open(f"{dataset_name}_cosine_similarities_by_TI_group.json", "r") as f:
+            dataset_TI_group_similarities = json.load(f)
+        for group, similarity in dataset_TI_group_similarities.items():
+            if group not in combined_TI_group_similarities:
+                combined_TI_group_similarities[group] = []
+            combined_TI_group_similarities[group].append(similarity)
+    
+    avg_combined_TI_group_similarities = {group: np.mean(vals) for group, vals in combined_TI_group_similarities.items()}
+    print("Average Cosine Similarity by TI Group across Datasets sorted by similarity:")
+    for group, similarity in sorted(avg_combined_TI_group_similarities.items(), key=lambda item: item[1], reverse=True):
+        print(f"TI Group {group}: {similarity}")
+    
+    print()
+
 if __name__ == "__main__":
     datasets = ["HEVC_CLASS_B","UVG","BVI-HD"]
-    enery_by_TI_group()
+    cosine_per_TI_group(datasets)
