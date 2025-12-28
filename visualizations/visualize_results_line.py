@@ -490,6 +490,35 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
     plt.savefig(os.path.join(output_dir, "rd_curve_range_all_TI_groups.png"))
     plt.close()
 
+    # another plot for the average curve across codecs per TI group
+    plt.figure(figsize=(16, 20))
+    plt.suptitle("Rate-Distortion Curve showing Average across Codecs for each TI Group")
+    for i, metric in enumerate(metrics):
+        ax = plt.subplot(4, 2, i + 1)
+        legend_handles = []
+        
+        for j, group_id in enumerate(TI_groups.keys()):
+            color = group_colors(j)
+            
+            # Collect metric values for all codecs for the current group and metric
+            all_codec_metrics = np.array([result_per_codec[codec][group_id][metric] for codec in codecs])
+            
+            # Find average across codecs for each bpp level
+            avg_values = np.mean(all_codec_metrics, axis=0)
+
+            # Plot the average line for the current group
+            ax.plot(bpp, avg_values, marker=markers[j], linestyle=line_styles[j], color=color, label=f'TI Group {group_id} Average')
+
+            # Create a proxy artist for the legend
+            legend_handles.append(plt.Line2D([0], [0], marker=markers[j], color='w', label=f'TI Group {group_id} Average',
+                               markerfacecolor=color, markersize=10))
+        ax.set_ylabel(metric.upper())
+        ax.grid(True)
+        ax.legend(handles=legend_handles)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.97])
+    plt.savefig(os.path.join(output_dir, "rd_curve_average_all_TI_groups.png"))
+    plt.close()
+
 
 def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
     for dataset in datasets:
@@ -607,9 +636,9 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
             plt.close()
 
 if __name__ == "__main__":
-    visualize_results_by_codec()
-    visualize_results_by_level()
-    visualize_results_by_TI_group()
+    #visualize_results_by_codec()
+    #visualize_results_by_level()
+    #visualize_results_by_TI_group()
     #visualize_results_by_video()
     visualize_results_by_TI_group_deviation_of_codecs(number_of_groups=4, fill_between=True)
     pass

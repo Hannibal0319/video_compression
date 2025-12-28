@@ -243,9 +243,42 @@ def SVD_entropy(curve):
     entropy = -np.sum(S_normalized * np.log(S_normalized + 1e-10))  # Adding small value for numerical stability
     return entropy
 
+import torch
+from typing import Optional
+
+
+def _svd_entropy_from_tensor(curve_tensor: torch.Tensor) -> float:
+    """Compute entropy from a centered curve tensor without building gradients."""
+    curve_centered = curve_tensor - torch.mean(curve_tensor, dim=0, keepdim=True)
+    # svdvals avoids materializing U/V and saves memory compared to full svd
+    singular_values = torch.linalg.svdvals(curve_centered)
+    singular_values = singular_values / torch.sum(singular_values)
+    entropy = -torch.sum(singular_values * torch.log(singular_values + 1e-10))
+    return entropy.item()
+
+
+def SVD_entropy_torch(curve, device: Optional[str] = None):
+    """
+    Compute the SVD entropy of a curve using PyTorch with GPU-safe fallback.
+
+    Parameters:
+    curve (np.ndarray or torch.Tensor): An NxM array representing the curve points.
+    device (str, optional): "cuda" or "cpu". Defaults to cuda if available.
+
+    Returns:
+    float: The SVD entropy of the curve.
+    """
+    chosen_device = torch.device(device) if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    curve_tensor = torch.as_tensor(curve, dtype=torch.float32, device=chosen_device)
+
+    with torch.no_grad():
+        entropy = _svd_entropy_from_tensor(curve_tensor)
+    return entropy
+    
+
 def compute_SVD_entropy_from_video(video_path):
     curve = load_curve_from_video(video_path)
-    entropy = SVD_entropy(curve)
+    entropy = SVD_entropy_torch(curve)
     return entropy
 
 def compute_SVD_entropy_from_videos(video_paths):
