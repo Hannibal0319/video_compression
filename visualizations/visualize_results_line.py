@@ -636,9 +636,9 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
             plt.close()
 
 if __name__ == "__main__":
-    #visualize_results_by_codec()
+    visualize_results_by_codec()
     #visualize_results_by_level()
-    #visualize_results_by_TI_group()
+    visualize_results_by_TI_group()
     #visualize_results_by_video()
     visualize_results_by_TI_group_deviation_of_codecs(number_of_groups=4, fill_between=True)
     pass
