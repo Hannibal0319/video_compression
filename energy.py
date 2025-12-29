@@ -334,7 +334,170 @@ def SVD_entropy_per_TI_group(datasets):
     
     print()
 
+def calculate_magnitude_of_change(video):
+    curve = load_curve_from_video(video)
+    n_points = curve.shape[0]
+    if n_points < 2:
+        return 0.0  # Not enough points to compute magnitude of change
+
+    total_change = 0.0
+    for i in range(n_points - 1):
+        change = np.linalg.norm(curve[i + 1] - curve[i])
+        total_change += change
+
+    average_change = total_change / (n_points - 1) if n_points > 1 else 0.0
+    return average_change
+
+def compute_magnitude_of_change_from_videos(video_paths):
+    changes = {}
+    for video_path in video_paths:
+        print(f"Processing video for magnitude of change: {video_path}")
+        change = calculate_magnitude_of_change(video_path)
+        print(f"Magnitude of Change for {video_path}: {change}")
+        changes[video_path] = change
+    return changes
+
+def compute_magnitude_of_change_for_dataset(datasets):
+    for dataset_name in datasets:
+        video_paths = []
+        dataset_path = os.path.join("videos", dataset_name)
+        for filename in os.listdir(dataset_path):
+            if filename.endswith(".mp4") or filename.endswith(".y4m"):
+                video_paths.append(os.path.join(dataset_path, filename))
+        changes = compute_magnitude_of_change_from_videos(video_paths)
+        os.makedirs("results/magnitude_of_change", exist_ok=True)
+        with open(f"results/magnitude_of_change/{dataset_name}_magnitude_of_change.json", "w") as f:
+            json.dump(changes, f, indent=4)
+
+def magnitude_of_change_per_TI_group(datasets):
+    TI_groups = load_TI_groups()
+    for dataset_name in datasets:
+        with open(f"results/magnitude_of_change/{dataset_name}_magnitude_of_change.json", "r") as f:
+            changes = json.load(f)
+        TI_group_changes = {}
+        for video_path, change in changes.items():
+            video_name = os.path.basename(video_path)
+            TI_group = TI_groups[dataset_name].get(video_name, "Unknown")
+            if TI_group not in TI_group_changes:
+                TI_group_changes[TI_group] = []
+            TI_group_changes[TI_group].append(change)
+        avg_TI_group_changes = {group: np.mean(vals) for group, vals in TI_group_changes.items()}
+        with open(f"results/magnitude_of_change/{dataset_name}_magnitude_of_change_by_TI_group.json", "w") as f:
+            json.dump(avg_TI_group_changes, f, indent=4)
+    
+    #make avg across datasets
+    combined_TI_group_changes = {}
+    for dataset_name in datasets:
+        with open(f"results/magnitude_of_change/{dataset_name}_magnitude_of_change_by_TI_group.json", "r") as f:
+            dataset_TI_group_changes = json.load(f)
+        for group, change in dataset_TI_group_changes.items():
+            if group not in combined_TI_group_changes:
+                combined_TI_group_changes[group] = []
+            combined_TI_group_changes[group].append(change)
+    
+    avg_combined_TI_group_changes = {group: np.mean(vals) for group, vals in combined_TI_group_changes.items()}
+    print("Average Magnitude of Change by TI Group across Datasets sorted by change:")
+    for group, change in sorted(avg_combined_TI_group_changes.items(), key=lambda item: item[1]):
+        print(f"TI Group {group}: {change}")
+    
+    print()
+
+
+def PCA_cosine_similarity(curve, n_components=10):
+    """
+    Compute the average cosine similarity between consecutive points in the PCA-reduced curve. GPU-accelerated.
+
+    Parameters:
+    curve (np.ndarray): An NxM array representing the curve points.
+    n_components (int): Number of PCA components to reduce to.
+
+    Returns:
+    float: The average cosine similarity between consecutive points in the PCA-reduced curve.
+    """
+    curve_torch = torch.tensor(curve, dtype=torch.float32)
+    #downsample if too large
+    curve_torch = curve_torch[::4]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    curve_torch = curve_torch.to(device)
+    pca = torch.pca_lowrank(curve_torch, q=n_components)
+    reduced_curve = torch.matmul(curve_torch - pca[0], pca[1]).cpu().numpy()
+
+    n_points = reduced_curve.shape[0]
+    if n_points < 2:
+        return 0.0  # Not enough points to compute cosine similarity
+
+    total_similarity = 0.0
+    count = 0
+    for i in range(n_points - 1):
+        v1 = reduced_curve[i]
+        v2 = reduced_curve[i + 1]
+        similarity = cosine_similarity(v1, v2)
+        total_similarity += similarity
+        count += 1
+
+    average_similarity = total_similarity / count if count > 0 else 0.0
+    return average_similarity
+
+def compute_PCA_cosine_similarity_from_video(video_path, n_components=10):
+    curve = load_curve_from_video(video_path)
+    similarity = PCA_cosine_similarity(curve, n_components=n_components)
+    return similarity
+
+def compute_PCA_cosine_similarity_from_videos(video_paths, n_components=10):
+    similarities = {}
+    for video_path in video_paths:
+        print(f"Processing video for PCA cosine similarity: {video_path}")
+        similarity = compute_PCA_cosine_similarity_from_video(video_path, n_components=n_components)
+        print(f"PCA Cosine Similarity for {video_path}: {similarity}")
+        similarities[video_path] = similarity
+    return similarities
+
+def compute_PCA_cosine_similarity_for_dataset(datasets, n_components=10):
+    for dataset_name in datasets:
+        video_paths = []
+        dataset_path = os.path.join("videos", dataset_name)
+        for filename in os.listdir(dataset_path):
+            if filename.endswith(".mp4") or filename.endswith(".y4m"):
+                video_paths.append(os.path.join(dataset_path, filename))
+        similarities = compute_PCA_cosine_similarity_from_videos(video_paths, n_components=n_components)
+        with open(f"results/PCA_cosine_similarity/{dataset_name}_PCA_cosine_similarities.json", "w") as f:
+            json.dump(similarities, f, indent=4)
+
+def PCA_cosine_similarity_per_TI_group(datasets, n_components=10):
+    TI_groups = load_TI_groups()
+    for dataset_name in datasets:
+        with open(f"results/PCA_cosine_similarity/{dataset_name}_PCA_cosine_similarities.json", "r") as f:
+            similarities = json.load(f)
+        TI_group_similarities = {}
+        for video_path, similarity in similarities.items():
+            video_name = os.path.basename(video_path)
+            TI_group = TI_groups[dataset_name].get(video_name, "Unknown")
+            if TI_group not in TI_group_similarities:
+                TI_group_similarities[TI_group] = []
+            TI_group_similarities[TI_group].append(similarity)
+        avg_TI_group_similarities = {group: np.mean(vals) for group, vals in TI_group_similarities.items()}
+        with open(f"results/PCA_cosine_similarity/{dataset_name}_PCA_cosine_similarities_by_TI_group.json", "w") as f:
+            json.dump(avg_TI_group_similarities, f, indent=4)
+    
+    #make avg across datasets
+    combined_TI_group_similarities = {}
+    for dataset_name in datasets:
+        with open(f"results/PCA_cosine_similarity/{dataset_name}_PCA_cosine_similarities_by_TI_group.json", "r") as f:
+            dataset_TI_group_similarities = json.load(f)
+        for group, similarity in dataset_TI_group_similarities.items():
+            if group not in combined_TI_group_similarities:
+                combined_TI_group_similarities[group] = []
+            combined_TI_group_similarities[group].append(similarity)
+    
+    avg_combined_TI_group_similarities = {group: np.mean(vals) for group, vals in combined_TI_group_similarities.items()}
+    print("Average PCA Cosine Similarity by TI Group across Datasets sorted by similarity:")
+    for group, similarity in sorted(avg_combined_TI_group_similarities.items(), key=lambda item: item[1], reverse=True):
+        print(f"TI Group {group}: {similarity}")
+    
+    print()
+
 if __name__ == "__main__":
     datasets = ["HEVC_CLASS_B","UVG","BVI-HD"]
-    compute_SVD_entropy_for_dataset(datasets)
-    SVD_entropy_per_TI_group(datasets)
+    n_components = 50
+    compute_PCA_cosine_similarity_for_dataset(datasets, n_components=n_components)
+    PCA_cosine_similarity_per_TI_group(datasets, n_components=n_components)
