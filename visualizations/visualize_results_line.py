@@ -5,7 +5,7 @@ import json
 from TI_groups import get_TI_groups
 
 datasets = [ "BVI-HD", "HEVC_CLASS_B", "UVG"]
-levels = [1,1.5,2,2.5,3,4,8]
+levels = [1,1.5,2,2.5,3,4,8,12]
 codecs = ["h264", "hevc", "vp9", "av1"]
 
 dataset_2_files = {

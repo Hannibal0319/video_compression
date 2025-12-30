@@ -37,7 +37,7 @@ datasets = ["BVI-HD","HEVC_CLASS_B","UVG"]
 codecs = ["h264","hevc","vp9","av1"]
 levels = ["12"]
 
-compute_metrics =["psnr","ssim","vmaf"]
+compute_metrics =["fvd","st_rred"]
 
 force = False
 # is force is True we recompute all metrics even if they already exist
