@@ -28,15 +28,16 @@ arg_parser.add_argument("--metrics", type=str, nargs="+", default=["psnr","ssim"
 
 args = arg_parser.parse_args()
 
-def find_original_for_compressed(video_name):
-    base_name = "_".join(video_name.split("\\")[-1].split("_")[:-1]) + ".mp4"
+def find_original_for_compressed(video_name,use_mp4=False):
+    extension = ".mp4" if use_mp4 else ".y4m"
+    base_name = "_".join(video_name.split("\\")[-1].split("_")[:-1]) + extension
     return base_name
 
-datasets = ["BVI-HD"]
+datasets = ["BVI-HD","HEVC_CLASS_B","UVG"]
 codecs = ["h264","hevc","vp9","av1"]
-levels = ["1","1.5","2","2.5","3","4","8"]
+levels = ["12"]
 
-compute_metrics =["tssim","tpsnr"]
+compute_metrics =["psnr","ssim","vmaf"]
 
 force = False
 # is force is True we recompute all metrics even if they already exist
@@ -58,7 +59,7 @@ for dataset in datasets:
 
             for video in compressed_videos:
                 compressed_video = os.path.join(compressed_videos_path, video)
-                input_video = "videos/" + dataset + "/" + find_original_for_compressed(compressed_video)
+                input_video = "videos/" + dataset + "/" + find_original_for_compressed(compressed_video,use_mp4=(dataset=="BVI-HD"))
                 print("Processing", video, "with codec", codec, "at level", level)
                 print("\nInput video:\n", input_video)
                 print("\nCompressed video:\n", compressed_video)

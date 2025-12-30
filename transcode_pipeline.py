@@ -96,10 +96,10 @@ def main():
         sys.exit(2)
 
     tasks = []
-    videos = [ videos_BVI_HD]
-    in_dirs = [ in_dir_BVI_HD]
-    datasets = ["BVI-HD"]
-    levels = [1,1.5, 2,2.5,3, 4, 8]
+    videos = [ videos_UVG, videos_HEVC, videos_BVI_HD]
+    in_dirs = [ in_dir_UVG, in_dir_HEVC, in_dir_BVI_HD]
+    datasets = ["UVG","HEVC_CLASS_B","BVI-HD"]
+    levels = [12]
 
     for i in range(len(videos)):
         print(f"Transcoding {len(videos[i])} videos to {args.codecs} using {args.workers} workers...")
@@ -132,5 +132,5 @@ def main_only_one():
     
 
 if __name__ == "__main__":
-    main_only_one()
-    #main()
+    #main_only_one()
+    main()
