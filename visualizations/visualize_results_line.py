@@ -28,7 +28,7 @@ def visualize_results_by_codec(output_dir="visualizations"):
                 with open(results_file, 'r') as f:
                     video_results = json.load(f)
 
-                # average psnr, ssim, vmaf over videos plotted as line with respect to bpp 
+                # average psnr, ssim, vmaf over videos plotted as line with respect to kbps 
                 metrics_for_codec[level] = {"psnr": [],
                     "ssim": [],
                     "vmaf": [],
@@ -47,7 +47,7 @@ def visualize_results_by_codec(output_dir="visualizations"):
                     metrics_for_codec[level]["movie_index"].append(video_data["movie_index"] if "movie_index" in video_data else 0)
                     metrics_for_codec[level]["st_rred"].append(video_data["st_rred"] if "st_rred" in video_data else 0)
             # average over all videos for each level
-            bpp = []
+            kbps = []
             psn = []
             ssim = []
             vmaf = []
@@ -65,8 +65,8 @@ def visualize_results_by_codec(output_dir="visualizations"):
                 avg_fvd = np.mean(metrics_for_codec[level]["fvd"])
                 avg_movie_index = np.mean(metrics_for_codec[level]["movie_index"])
                 avg_st_rred = np.mean(metrics_for_codec[level]["st_rred"])
-                bpp_value = 1000 * level  # assuming bpp increases linearly with level for simplicity
-                bpp.append(bpp_value)
+                kbps_value = 1000 * level  # assuming kbps increases linearly with level for simplicity
+                kbps.append(kbps_value)
                 psn.append(avg_psnr)
                 ssim.append(avg_ssim)
                 vmaf.append(avg_vmaf)
@@ -77,46 +77,46 @@ def visualize_results_by_codec(output_dir="visualizations"):
                 st_rred.append(avg_st_rred)
 
             plt.subplot(4, 2, 1)
-            plt.plot(bpp, psn, marker='o', label=codec.upper())
+            plt.plot(kbps, psn, marker='o', label=codec.upper())
             plt.ylabel("PSNR (dB)")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 2)
-            plt.plot(bpp, ssim, marker='o', label=codec.upper())
+            plt.plot(kbps, ssim, marker='o', label=codec.upper())
             plt.ylabel("SSIM")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 3)
-            plt.plot(bpp, vmaf, marker='o', label=codec.upper())
+            plt.plot(kbps, vmaf, marker='o', label=codec.upper())
             plt.ylabel("VMAF")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 4)
-            plt.plot(bpp, tpsnr, marker='o', label=codec.upper())
+            plt.plot(kbps, tpsnr, marker='o', label=codec.upper())
             plt.ylabel("tPSNR (dB)")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 5)
-            plt.plot(bpp, tssim, marker='o', label=codec.upper())
+            plt.plot(kbps, tssim, marker='o', label=codec.upper())
             plt.ylabel("tSSIM")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 6)
-            plt.plot(bpp, fvd, marker='o', label=codec.upper())
+            plt.plot(kbps, fvd, marker='o', label=codec.upper())
             plt.ylabel("FVD")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 7)
-            plt.plot(bpp, movie_index, marker='o', label=codec.upper())
+            plt.plot(kbps, movie_index, marker='o', label=codec.upper())
             plt.ylabel("Movie Index")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 8)
-            plt.plot(bpp, st_rred, marker='o', label=codec.upper())
+            plt.plot(kbps, st_rred, marker='o', label=codec.upper())
             plt.ylabel("ST-RRED")
             plt.grid(True)
             plt.legend()
-        plt.xlabel("Bits per Pixel (bpp)")
+        plt.xlabel("Bits per Pixel (kbps)")
         plt.savefig(os.path.join(output_dir, f"{dataset}_rd_curve_by_codec.png"))
         plt.close()
 
@@ -132,7 +132,7 @@ def visualize_results_by_level(output_dir="visualizations"):
                 with open(results_file, 'r') as f:
                     video_results = json.load(f)
 
-                # average psnr, ssim, vmaf over videos plotted as line with respect to bpp 
+                # average psnr, ssim, vmaf over videos plotted as line with respect to kbps 
                 metrics_for_level[codec] = {"psnr": [],
                     "ssim": [],
                     "vmaf": [],
@@ -268,9 +268,9 @@ def visualize_results_by_TI_group(output_dir="visualizations"):
                             metrics_for_group[group_id][level]["fvd"].append(video_data["fvd"] if "fvd" in video_data else 0)
                             metrics_for_group[group_id][level]["movie_index"].append(video_data["movie_index"] if "movie_index" in video_data else 0)
                             metrics_for_group[group_id][level]["st_rred"].append(video_data["st_rred"] if "st_rred" in video_data else 0)
-                            metrics_for_group[group_id][level]["bpp"] = 1000 * level  # assuming bpp increases linearly with level for simplicity
+                            metrics_for_group[group_id][level]["kbps"] = 1000 * level  # assuming kbps increases linearly with level for simplicity
         groups_ids = list(TI_groups.keys())
-        bpp = [metrics_for_group[groups_ids[0]][level]["bpp"] for level in levels]
+        kbps = [metrics_for_group[groups_ids[0]][level]["kbps"] for level in levels]
 
         psn = []
         ssim = []
@@ -307,42 +307,42 @@ def visualize_results_by_TI_group(output_dir="visualizations"):
                 movie_index.append(avg_movie_index)
                 st_rred.append(avg_st_rred)
             plt.subplot(4, 2, 1)
-            plt.plot(bpp, psn, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, psn, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("PSNR (dB)")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 2)
-            plt.plot(bpp, ssim, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, ssim, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("SSIM")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 3)
-            plt.plot(bpp, vmaf, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, vmaf, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("VMAF")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 4)
-            plt.plot(bpp, tpsnr, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, tpsnr, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("tPSNR (dB)")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 5)
-            plt.plot(bpp, tssim, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, tssim, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("tSSIM")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 6)
-            plt.plot(bpp, fvd, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, fvd, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("FVD")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 7)
-            plt.plot(bpp, movie_index, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, movie_index, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("Movie Index")
             plt.grid(True)
             plt.legend()
             plt.subplot(4, 2, 8)
-            plt.plot(bpp, st_rred, marker='o', label=f"TI Group {group_id}")
+            plt.plot(kbps, st_rred, marker='o', label=f"TI Group {group_id}")
             plt.ylabel("ST-RRED")
             plt.grid(True)
             plt.legend()
@@ -389,9 +389,9 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
                             metrics_for_group[group_id][level]["fvd"].append(video_data["fvd"] if "fvd" in video_data else 0)
                             metrics_for_group[group_id][level]["movie_index"].append(video_data["movie_index"] if "movie_index" in video_data else 0)
                             metrics_for_group[group_id][level]["st_rred"].append(video_data["st_rred"] if "st_rred" in video_data else 0)
-                            metrics_for_group[group_id][level]["bpp"] = 1000 * level  # assuming bpp increases linearly with level for simplicity
+                            metrics_for_group[group_id][level]["kbps"] = 1000 * level  # assuming kbps increases linearly with level for simplicity
         groups_ids = list(TI_groups.keys())
-        bpp = [metrics_for_group[groups_ids[0]][level]["bpp"] for level in levels]
+        kbps = [metrics_for_group[groups_ids[0]][level]["kbps"] for level in levels]
 
         psn = []
         ssim = []
@@ -451,7 +451,7 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
         # Now plot deviation of codecs per TI group on a single figure
     plt.figure(figsize=(16, 20))
     plt.suptitle("Rate-Distortion Curve showing min/max range across Codecs for each TI Group")
-    bpp = [1000 * level for level in levels]
+    kbps = [1000 * level for level in levels]
     metrics = ["psnr", "ssim", "vmaf", "tpsnr", "tssim", "fvd", "movie_index", "st_rred"]
     
     # Define colors for different TI groups to make the plot readable
@@ -468,16 +468,16 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
             # Collect metric values for all codecs for the current group and metric
             all_codec_metrics = np.array([result_per_codec[codec][group_id][metric] for codec in codecs])
             
-            # Find min and max across codecs for each bpp level
+            # Find min and max across codecs for each kbps level
             min_values = np.min(all_codec_metrics, axis=0)
             max_values = np.max(all_codec_metrics, axis=0)
 
             # Plot the min and max lines for the current group
-            ax.plot(bpp, min_values, marker=markers[j], linestyle=line_styles[j], color=color)
-            ax.plot(bpp, max_values, marker=markers[j], linestyle=line_styles[j], color=color)
+            ax.plot(kbps, min_values, marker=markers[j], linestyle=line_styles[j], color=color)
+            ax.plot(kbps, max_values, marker=markers[j], linestyle=line_styles[j], color=color)
             
             # Fill the area between min and max for the current group
-            if fill_between: ax.fill_between(bpp, min_values, max_values, alpha=0.4, color=color, label=f'TI Group {group_id} Range')
+            if fill_between: ax.fill_between(kbps, min_values, max_values, alpha=0.4, color=color, label=f'TI Group {group_id} Range')
 
             # Create a proxy artist for the legend
             legend_handles.append(plt.Line2D([0], [0], marker=markers[j], color='w', label=f'TI Group {group_id} Range',
@@ -503,11 +503,11 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
             # Collect metric values for all codecs for the current group and metric
             all_codec_metrics = np.array([result_per_codec[codec][group_id][metric] for codec in codecs])
             
-            # Find average across codecs for each bpp level
+            # Find average across codecs for each kbps level
             avg_values = np.mean(all_codec_metrics, axis=0)
 
             # Plot the average line for the current group
-            ax.plot(bpp, avg_values, marker=markers[j], linestyle=line_styles[j], color=color, label=f'TI Group {group_id} Average')
+            ax.plot(kbps, avg_values, marker=markers[j], linestyle=line_styles[j], color=color, label=f'TI Group {group_id} Average')
 
             # Create a proxy artist for the legend
             legend_handles.append(plt.Line2D([0], [0], marker=markers[j], color='w', label=f'TI Group {group_id} Average',
@@ -569,7 +569,7 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
             print(f"Plotting RD curve for video: {video_name} in dataset: {dataset}")
             print(metrics_by_level_codec)
             for codec in codecs:
-                bpp = []
+                kbps = []
                 psn = []
                 ssim = []
                 vmaf = []
@@ -579,7 +579,7 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
                 movie_index = []
                 st_rred = []
                 for level in levels:
-                    bpp.append(1000 * level)  # assuming bpp increases linearly with level for simplicity
+                    kbps.append(1000 * level)  # assuming kbps increases linearly with level for simplicity
                     psn.append(metrics_by_level_codec[level][codec]["psnr"][0])
                     ssim.append(metrics_by_level_codec[level][codec]["ssim"][0])
                     vmaf.append(metrics_by_level_codec[level][codec]["vmaf"][0])
@@ -589,44 +589,44 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
                     movie_index.append(metrics_by_level_codec[level][codec]["movie_index"][0])
                     st_rred.append(metrics_by_level_codec[level][codec]["st_rred"][0])
 
-                print(f"Codec: {codec}, BPP: {bpp}, PSNR: {psn}")
+                print(f"Codec: {codec}, kbps: {kbps}, PSNR: {psn}")
                 plt.subplot(4, 2, 1)
-                plt.plot(bpp, psn, marker='o',label=codec.upper())
+                plt.plot(kbps, psn, marker='o',label=codec.upper())
                 plt.ylabel("PSNR (dB)")
                 plt.grid(True)
                 plt.legend()
                 plt.subplot(4, 2, 2)
-                plt.plot(bpp, ssim, marker='o',label=codec.upper())
+                plt.plot(kbps, ssim, marker='o',label=codec.upper())
                 plt.ylabel("SSIM")
                 plt.grid(True)
                 plt.legend()
                 plt.subplot(4, 2, 3)
-                plt.plot(bpp, vmaf, marker='o',label=codec.upper())
+                plt.plot(kbps, vmaf, marker='o',label=codec.upper())
                 plt.ylabel("VMAF")
                 plt.grid(True)
                 plt.legend()
                 plt.subplot(4, 2, 4)
-                plt.plot(bpp, tpsnr, marker='o',label=codec.upper())
+                plt.plot(kbps, tpsnr, marker='o',label=codec.upper())
                 plt.ylabel("tPSNR (dB)")
                 plt.grid(True)
                 plt.legend()
                 plt.subplot(4, 2, 5)
-                plt.plot(bpp, tssim, marker='o',label=codec.upper())
+                plt.plot(kbps, tssim, marker='o',label=codec.upper())
                 plt.ylabel("tSSIM")
                 plt.grid(True)
                 plt.legend()
                 plt.subplot(4, 2, 6)
-                plt.plot(bpp, fvd, marker='o',label=codec.upper())
+                plt.plot(kbps, fvd, marker='o',label=codec.upper())
                 plt.ylabel("FVD")
                 plt.grid(True)
                 plt.legend()
                 plt.subplot(4, 2, 7)
-                plt.plot(bpp, movie_index, marker='o',label=codec.upper())
+                plt.plot(kbps, movie_index, marker='o',label=codec.upper())
                 plt.ylabel("Movie Index")
                 plt.grid(True)
                 plt.legend()
                 plt.subplot(4, 2, 8)
-                plt.plot(bpp, st_rred, marker='o',label=codec.upper())
+                plt.plot(kbps, st_rred, marker='o',label=codec.upper())
                 plt.ylabel("ST-RRED")
                 plt.grid(True)
                 plt.legend()

@@ -34,10 +34,10 @@ def find_original_for_compressed(video_name,use_mp4=False):
     return base_name
 
 datasets = ["BVI-HD","HEVC_CLASS_B","UVG"]
-codecs = ["h264","hevc","vp9","av1"]
+codecs = ["av1","h264","hevc","vp9"]
 levels = ["12"]
 
-compute_metrics =["fvd","st_rred"]
+compute_metrics =["fvd","st_rred","movie_index","tssim","tpsnr"]
 
 force = False
 # is force is True we recompute all metrics even if they already exist
