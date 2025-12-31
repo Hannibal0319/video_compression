@@ -64,7 +64,6 @@ import numpy as np
 # Re-loading/Processing to handle aggregations
 # We already have 'df'.
 
-# Filter out movie_index as discussed due to extreme values/Inf
 metrics_to_plot = [m for m in ['psnr', 'ssim', 'vmaf', 'fvd', 'tssim', 'tpsnr', 'st_rred', 'movie_index'] if m in df.columns]
 
 # Check for infinity or nan in these metrics and clean
