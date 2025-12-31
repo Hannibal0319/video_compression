@@ -381,7 +381,9 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
 
                         videos_by_first_word = [v[0].split("_")[0] for v in videos]
                         if video_name.split("_")[0] in videos_by_first_word:
-                            metrics_for_group[group_id][level]["psnr"].append(video_data["psnr"] if "psnr" in video_data else 0)
+                            if (video_data["psnr"] if "psnr" in video_data else 0) > 100 or (video_data["psnr"] if "psnr" in video_data else 0) <= 0:
+                                print(f"Warning: Unusual PSNR value {video_data['psnr']} for video {video_name}, codec {codec}, level {level}, dataset {dataset}")
+                            metrics_for_group[group_id][level]["psnr"].append(min(video_data["psnr"] if "psnr" in video_data else 0, 60))
                             metrics_for_group[group_id][level]["ssim"].append(video_data["ssim"] if "ssim" in video_data else 0)
                             metrics_for_group[group_id][level]["vmaf"].append(video_data["vmaf"] if "vmaf" in video_data else 0)
                             metrics_for_group[group_id][level]["tpsnr"].append(video_data["tpsnr"] if "tpsnr" in video_data else 0)
@@ -449,7 +451,7 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
                 "st_rred": st_rred
             }
         # Now plot deviation of codecs per TI group on a single figure
-    plt.figure(figsize=(16, 20))
+    plt.figure(figsize=(20, 24))
     plt.suptitle("Rate-Distortion Curve showing min/max range across Codecs for each TI Group")
     kbps = [1000 * level for level in levels]
     metrics = ["psnr", "ssim", "vmaf", "tpsnr", "tssim", "fvd", "movie_index", "st_rred"]
@@ -471,6 +473,15 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
             # Find min and max across codecs for each kbps level
             min_values = np.min(all_codec_metrics, axis=0)
             max_values = np.max(all_codec_metrics, axis=0)
+            # say if there is any nan value in min_values or max_values, print a warning
+            if np.isnan(min_values).any() or np.isnan(max_values).any():
+                print(f"Warning: NaN values found in min or max values for Group {group_id}, Metric {metric}")
+                # search for which codec and level has nan value
+                for codec in codecs:
+                    codec_metrics = result_per_codec[codec][group_id][metric]
+                    for level_idx, value in enumerate(codec_metrics):
+                        if np.isnan(value):
+                            print(f"NaN found for Codec {codec}, Group {group_id}, Metric {metric}, Level {levels[level_idx]}")
 
             # Plot the min and max lines for the current group
             ax.plot(kbps, min_values, marker=markers[j], linestyle=line_styles[j], color=color)
@@ -505,6 +516,7 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
             
             # Find average across codecs for each kbps level
             avg_values = np.mean(all_codec_metrics, axis=0)
+            print(f"Group {group_id}, Metric {metric}, Avg Values: {avg_values}")
 
             # Plot the average line for the current group
             ax.plot(kbps, avg_values, marker=markers[j], linestyle=line_styles[j], color=color, label=f'TI Group {group_id} Average')
@@ -634,6 +646,7 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
             os.makedirs(f"{output_dir}/{dataset}", exist_ok=True)
             plt.savefig(f"{output_dir}/{dataset}/{video_name}_rd_curve.png")
             plt.close()
+    
 
 if __name__ == "__main__":
     visualize_results_by_codec()
