@@ -14,6 +14,18 @@ dataset_2_files = {
     "BVI-HD": "results/eval_metrics_BVI-HD_"
 }
 
+SMALL_SIZE = 14
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 16
+
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
 
 def visualize_results_by_codec(output_dir="visualizations"):
     
@@ -526,11 +538,23 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
                                markerfacecolor=color, markersize=10))
         ax.set_ylabel(metric.upper())
         ax.grid(True)
-        ax.legend(handles=legend_handles)
+        ax.legend(handles=legend_handles, loc=get_loc_by_metric(metric),frameon=True,framealpha=0.8,bbox_to_anchor=(0.0, 0.85) if metric=="movie_index" else None)
     plt.tight_layout(rect=[0, 0.03, 1, 0.97])
     plt.savefig(os.path.join(output_dir, "rd_curve_average_all_TI_groups.png"))
     plt.close()
 
+def get_loc_by_metric(metric_name):
+    metric_locs = {
+        "psnr": "lower right",
+        "ssim": "lower right",
+        "vmaf": "lower right",
+        "tpsnr": "lower right",
+        "tssim": "lower right",
+        "fvd": "upper right",
+        "movie_index": "upper left",
+        "st_rred": "upper right"
+    }
+    return metric_locs.get(metric_name.lower(), None)
 
 def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
     for dataset in datasets:
@@ -574,9 +598,8 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
                     metrics_for_video_by_level[video_name][level][codec]["st_rred"].append(video_data["st_rred"] if "st_rred" in video_data else 0)
         #print(list(metrics_for_video_by_level.values())[0].values())
         for video_name, metrics_by_level_codec in metrics_for_video_by_level.items():
-            plt.figure(figsize=(12, 12))
+            plt.figure(figsize=(16, 12))
             plt.suptitle(f"Rate-Distortion Curve for {video_name} in {dataset}")
-
             
             print(f"Plotting RD curve for video: {video_name} in dataset: {dataset}")
             print(metrics_by_level_codec)
