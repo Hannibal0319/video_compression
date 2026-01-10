@@ -1,6 +1,8 @@
 #compute bending energy of curve drawn by the video in frame space
 import numpy as np
 import tqdm
+import torch_incremental_pca as tip
+
 
 def bending_energy_1080x1920x3(curve):
     """
@@ -244,6 +246,7 @@ def SVD_entropy(curve):
     return entropy
 
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 from typing import Optional
 
 
@@ -402,64 +405,95 @@ def magnitude_of_change_per_TI_group(datasets):
     
     print()
 
+import gc
 
-def PCA_cosine_similarity(curve, n_components=10):
+def PCA_cosine_similarity(curve, n_components=10, batch_size=128, device: Optional[str] = None):
     """
-    Compute the average cosine similarity between consecutive points in the PCA-reduced curve. GPU-accelerated.
+    Compute the average cosine similarity between consecutive points in the PCA-reduced curve.
+    Processes data in batches to avoid GPU OOM.
 
     Parameters:
     curve (np.ndarray): An NxM array representing the curve points.
     n_components (int): Number of PCA components to reduce to.
+    batch_size (int): Batch size used for incremental PCA and transform.
+    device (str, optional): Preferred device string ("cuda" or "cpu").
 
     Returns:
     float: The average cosine similarity between consecutive points in the PCA-reduced curve.
     """
+    chosen_device = torch.device(device) if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("free space before PCA:", torch.cuda.memory_reserved(chosen_device)/1e9 if chosen_device.type=="cuda" else "N/A")
     curve_torch = torch.tensor(curve, dtype=torch.float32)
-    #downsample if too large
-    curve_torch = curve_torch[::4]
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    curve_torch = curve_torch.to(device)
-    pca = torch.pca_lowrank(curve_torch, q=n_components)
-    reduced_curve = torch.matmul(curve_torch - pca[0], pca[1]).cpu().numpy()
+    dataset = TensorDataset(curve_torch)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    print("Fitting Incremental PCA...")
+    pca = tip.IncrementalPCA(n_components=n_components)
+    print("Transforming data with Incremental PCA...")
+    # Fit incrementally to avoid loading all data on GPU at once
+    for (batch,) in loader:
+        if batch.size(0)<n_components:
+            continue  #skip small batches
+        batch = batch.to(chosen_device)
+        batch =batch.half() if chosen_device.type=="cuda" else batch
+        
+        print("free space during PCA fit:", torch.cuda.memory_reserved(chosen_device)/1e9 if chosen_device.type=="cuda" else "N/A")
+        pca.partial_fit(batch)
+        gc.collect()
+        print("progress PCA fit:", pca.n_samples_seen_, "/", curve.shape[0])
+        if chosen_device.type == "cuda":
+            torch.cuda.empty_cache()
+    
+    print("Applying PCA transform incrementally...")
+    # Transform incrementally and collect on CPU
+    reduced_chunks = []
+    for (batch,) in loader:
+        batch = batch.to(chosen_device)
+        reduced = pca.transform(batch).cpu()
+        reduced_chunks.append(reduced)
+    
+    print("Calculating average cosine similarity...")
 
-    n_points = reduced_curve.shape[0]
+    curve_reduced = torch.cat(reduced_chunks, dim=0).numpy()
+    n_points = curve_reduced.shape[0]
     if n_points < 2:
         return 0.0  # Not enough points to compute cosine similarity
-
     total_similarity = 0.0
     count = 0
-    for i in range(n_points - 1):
-        v1 = reduced_curve[i]
-        v2 = reduced_curve[i + 1]
+    for i in tqdm.tqdm(range(n_points - 1)):
+        v1 = curve_reduced[i]
+        v2 = curve_reduced[i + 1]
         similarity = cosine_similarity(v1, v2)
         total_similarity += similarity
         count += 1
-
     average_similarity = total_similarity / count if count > 0 else 0.0
     return average_similarity
 
-def compute_PCA_cosine_similarity_from_video(video_path, n_components=10):
+def compute_PCA_cosine_similarity_from_video(video_path, n_components=10, batch_size=16):
     curve = load_curve_from_video(video_path)
-    similarity = PCA_cosine_similarity(curve, n_components=n_components)
+    print("Curve shape:", curve.shape)
+    print("Computing PCA cosine similarity...")
+    similarity = PCA_cosine_similarity(curve, n_components=n_components, batch_size=batch_size, device="cuda")
     return similarity
 
-def compute_PCA_cosine_similarity_from_videos(video_paths, n_components=10):
+def compute_PCA_cosine_similarity_from_videos(video_paths, n_components=10, batch_size=16):
     similarities = {}
     for video_path in video_paths:
         print(f"Processing video for PCA cosine similarity: {video_path}")
-        similarity = compute_PCA_cosine_similarity_from_video(video_path, n_components=n_components)
+        similarity = compute_PCA_cosine_similarity_from_video(video_path, n_components=n_components, batch_size=batch_size)
         print(f"PCA Cosine Similarity for {video_path}: {similarity}")
         similarities[video_path] = similarity
     return similarities
 
-def compute_PCA_cosine_similarity_for_dataset(datasets, n_components=10):
+def compute_PCA_cosine_similarity_for_dataset(datasets, n_components=10, batch_size=16):
+    print("Cuda available:", torch.cuda.is_available())
+    os.makedirs("results/PCA_cosine_similarity", exist_ok=True)
     for dataset_name in datasets:
         video_paths = []
         dataset_path = os.path.join("videos", dataset_name)
         for filename in os.listdir(dataset_path):
             if filename.endswith(".mp4") or filename.endswith(".y4m"):
                 video_paths.append(os.path.join(dataset_path, filename))
-        similarities = compute_PCA_cosine_similarity_from_videos(video_paths, n_components=n_components)
+        similarities = compute_PCA_cosine_similarity_from_videos(video_paths, n_components=n_components, batch_size=batch_size)
         with open(f"results/PCA_cosine_similarity/{dataset_name}_PCA_cosine_similarities.json", "w") as f:
             json.dump(similarities, f, indent=4)
 
@@ -498,6 +532,6 @@ def PCA_cosine_similarity_per_TI_group(datasets, n_components=10):
 
 if __name__ == "__main__":
     datasets = ["HEVC_CLASS_B","UVG","BVI-HD"]
-    n_components = 50
-    compute_PCA_cosine_similarity_for_dataset(datasets, n_components=n_components)
-    PCA_cosine_similarity_per_TI_group(datasets, n_components=n_components)
+    n_components = 16
+    batch_size = 16
+    enery_by_TI_group()
