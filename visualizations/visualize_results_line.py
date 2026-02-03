@@ -14,7 +14,7 @@ dataset_2_files = {
     "BVI-HD": "results/eval_metrics_BVI-HD_"
 }
 
-SMALL_SIZE = 14
+SMALL_SIZE = 12
 MEDIUM_SIZE = 14
 BIGGER_SIZE = 16
 
@@ -463,17 +463,22 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
                 "st_rred": st_rred
             }
         # Now plot deviation of codecs per TI group on a single figure
-    plt.figure(figsize=(20, 24))
+
+    # turn fvd to log scale for better visualization
+    for codec in codecs:
+        for group_id in TI_groups.keys():
+            result_per_codec[codec][group_id]["fvd"] = [np.log10(x+1) if x>0 else 0 for x in result_per_codec[codec][group_id]["fvd"]]
+    plt.figure(figsize=(6, 6))
     plt.suptitle("Rate-Distortion Curve showing min/max range across Codecs for each TI Group")
     kbps = [1000 * level for level in levels]
-    metrics = ["psnr", "ssim", "vmaf", "tpsnr", "tssim", "fvd", "movie_index", "st_rred"]
+    metrics = ["psnr","ssim","vmaf", "fvd", "tpsnr", "tssim", "movie_index", "st_rred"]
     
     # Define colors for different TI groups to make the plot readable
     group_colors = plt.cm.get_cmap('tab10', len(TI_groups))
     markers = ['o', 's', '^', 'D', 'v', 'P', '*', 'X', 'h', '<', '>','8']
     line_styles = ['--', ':', '-.', '-', '--', ':', '-.', '-', '--', ':', '-.', '-']
     for i, metric in enumerate(metrics):
-        ax = plt.subplot(4, 2, i + 1)
+        ax = plt.subplot(2, 4, i + 1)
         legend_handles = []
         
         for j, group_id in enumerate(TI_groups.keys()):
@@ -514,8 +519,8 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
     plt.close()
 
     # another plot for the average curve across codecs per TI group
-    plt.figure(figsize=(16, 20))
-    plt.suptitle("Rate-Distortion Curve showing Average across Codecs for each TI Group")
+    plt.figure(figsize=(12, 18))
+    #plt.suptitle("Rate-Distortion Curve showing Average across Codecs for each TI Group")
     for i, metric in enumerate(metrics):
         ax = plt.subplot(4, 2, i + 1)
         legend_handles = []
@@ -538,7 +543,7 @@ def visualize_results_by_TI_group_deviation_of_codecs(output_dir="visualizations
                                markerfacecolor=color, markersize=10))
         ax.set_ylabel(metric.upper())
         ax.grid(True)
-        ax.legend(handles=legend_handles, loc=get_loc_by_metric(metric),frameon=True,framealpha=0.8,bbox_to_anchor=(0.0, 0.85) if metric=="movie_index" else None)
+        ax.legend(handles=legend_handles, loc=get_loc_by_metric(metric),frameon=True,framealpha=0.8,bbox_to_anchor=(0.0, 0.83) if metric=="movie_index" else None)
     plt.tight_layout(rect=[0, 0.03, 1, 0.97])
     plt.savefig(os.path.join(output_dir, "rd_curve_average_all_TI_groups.png"))
     plt.close()
@@ -672,9 +677,9 @@ def visualize_results_by_video(output_dir="visualizations/plots_by_video"):
     
 
 if __name__ == "__main__":
-    visualize_results_by_codec()
+    #visualize_results_by_codec()
     #visualize_results_by_level()
-    visualize_results_by_TI_group()
+    #visualize_results_by_TI_group()
     #visualize_results_by_video()
     visualize_results_by_TI_group_deviation_of_codecs(number_of_groups=4, fill_between=True)
     pass

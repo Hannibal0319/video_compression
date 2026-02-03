@@ -4,6 +4,18 @@ import seaborn as sns
 import pandas as pd
 import json
 
+SMALL_SIZE = 12
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 16
+
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
 # List of files (simulated based on the context provided, but in real env I'd list dir)
 # The user uploaded files are in the current directory.
 files = [
@@ -64,7 +76,7 @@ import numpy as np
 # Re-loading/Processing to handle aggregations
 # We already have 'df'.
 
-metrics_to_plot = [m for m in ['psnr', 'ssim', 'vmaf', 'fvd', 'tssim', 'tpsnr', 'st_rred', 'movie_index'] if m in df.columns]
+metrics_to_plot = [m for m in ['psnr','ssim','vmaf','fvd','tpsnr','tssim','st_rred','movie_index'] if m in df.columns]
 
 # Check for infinity or nan in these metrics and clean
 df_clean = df.replace([np.inf, -np.inf], np.nan)
@@ -76,6 +88,10 @@ df_grouped = df_clean.groupby(['Dataset', 'Anchor', 'Tested_Codec'])[metrics_to_
 datasets = df_grouped['Dataset'].unique()
 codecs = ['h264', 'hevc', 'vp9', 'av1'] # Expected ordering
 
+#make movie index log scale for better visualization withotut losing negative values
+if 'movie_index' in metrics_to_plot:
+    df_grouped['movie_index'] = df_grouped['movie_index'].apply(lambda x: np.sign(x) * np.log1p(abs(x)) if pd.notnull(x) else x)
+
 for dataset in datasets:
     # Filter for dataset
     data_ds = df_grouped[df_grouped['Dataset'] == dataset]
@@ -85,8 +101,8 @@ for dataset in datasets:
     cols = 4
     rows = (num_metrics + cols - 1) // cols
     
-    fig, axes = plt.subplots(rows, cols, figsize=(20, 5 * rows))
-    fig.suptitle(f'Average BD-Rate Scores - {dataset}\n(Negative is Better)', fontsize=20)
+    fig, axes = plt.subplots(rows, cols, figsize=(15, 3 * rows))
+    #fig.suptitle(f'Average BD-Rate Scores - {dataset}\n(Negative is Better)', fontsize=20)
     axes = axes.flatten()
     
     for i, metric in enumerate(metrics_to_plot):
@@ -113,6 +129,7 @@ for dataset in datasets:
     for j in range(i + 1, len(axes)):
         axes[j].axis('off')
         
+    #plt.subplots_adjust(hspace=0.5, wspace=0.5)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig("visualizations/bd_scores_plots/bd_rate_scores_" + dataset + ".png")
     print(f"Saved plot for dataset: {dataset}")
