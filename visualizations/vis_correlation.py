@@ -8,6 +8,8 @@ from typing import Dict, Iterable, List
 import matplotlib.pyplot as plt
 import numpy as np
 
+plt.rcParams.update({'font.size': 14})
+
 from vis_vmaf_paradox import (
 	CODECS,
 	DATASETS,
@@ -76,6 +78,7 @@ def plot_vmaf_vs_temporal(
 ) -> None:
 	fig, ax = plt.subplots(figsize=(9, 5.5))
 	colors = {1: "#1f77b4", 2: "#ff7f0e", 3: "#2ca02c", 4: "#d62728"}
+	markers = {1: "^", 2: "s", 3: "o", 4: "D"}
 
 	for group_id in sorted({p["ti_group"] for p in points}):
 		group_points = [p for p in points if p["ti_group"] == group_id]
@@ -86,6 +89,7 @@ def plot_vmaf_vs_temporal(
 			y_vals,
 			label=f"TI Group {group_id}",
 			color=colors.get(group_id, "gray"),
+			marker=markers.get(group_id, "o"),
 			alpha=0.75,
 			edgecolors="white",
 			linewidth=0.6,

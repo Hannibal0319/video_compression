@@ -8,6 +8,8 @@ from typing import Dict, Iterable, List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
+plt.rcParams.update({'font.size': 14})
+
 
 DATASETS = ["BVI-HD", "HEVC_CLASS_B", "UVG"]
 CODECS = ["h264", "hevc", "vp9", "av1"]
@@ -212,10 +214,10 @@ def plot_percent_drop(
 	ax.set_ylabel("% Decrease in MOVIE Index vs. lowest bitrate")
 	ax.set_title("Relative MOVIE Index drop by bitrate")
 	ax.grid(True, linestyle="--", alpha=0.35)
-	ax.legend()
+	ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 	fig.tight_layout()
 	os.makedirs(os.path.dirname(output_path), exist_ok=True)
-	plt.savefig(output_path, dpi=300)
+	plt.savefig(output_path, dpi=300, bbox_inches="tight")
 	plt.close(fig)
 	print(f"Saved percent-drop plot to {output_path}")
 
@@ -263,10 +265,10 @@ def plot_efficiency_loss(
 	ax.set_ylabel("Efficiency Loss in MOVIE Index (%)")
 	#ax.set_title(f"Efficiency Loss in MOVIE Index: {low_bitrate} kbps → {high_bitrate} kbps")
 	ax.grid(axis="y", linestyle="--", alpha=0.35)
-	ax.legend()
+	ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 	fig.tight_layout()
 	os.makedirs(os.path.dirname(output_path), exist_ok=True)
-	plt.savefig(output_path, dpi=300)
+	plt.savefig(output_path, dpi=300, bbox_inches="tight")
 	plt.close(fig)
 	print(f"Saved efficiency-loss plot to {output_path}")
 
@@ -312,11 +314,11 @@ def plot_convergence(
 
 	handles_left, labels_left = ax_left.get_legend_handles_labels()
 	handles_right, labels_right = ax_right.get_legend_handles_labels()
-	ax_left.legend(handles_left + handles_right, labels_left + labels_right, loc="upper center")
+	ax_left.legend(handles_left + handles_right, labels_left + labels_right, loc="center left", bbox_to_anchor=(1.15, 0.5))
 
 	fig.tight_layout()
 	os.makedirs(os.path.dirname(output_path), exist_ok=True)
-	plt.savefig(output_path, dpi=300)
+	plt.savefig(output_path, dpi=300, bbox_inches="tight")
 	plt.close(fig)
 	print(f"Saved convergence plot to {output_path}")
 
